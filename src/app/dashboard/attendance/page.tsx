@@ -693,9 +693,9 @@ export default function AttendancePage() {
 
       {/* Photo Capture Modal - Full screen on mobile for easier half-body photo */}
       {selectedMember && (
-        <div className="fixed inset-0 bg-black md:bg-opacity-50 flex items-center justify-center md:p-4 z-50">
-          <div className="bg-white md:rounded-2xl w-full h-full md:h-auto md:max-w-2xl md:max-h-[95vh] overflow-y-auto flex flex-col">
-            <div className="flex items-center justify-between p-4 md:p-6 lg:p-8 pb-2 md:pb-4">
+        <div className="fixed inset-0 bg-black md:bg-black/50 flex items-center justify-center md:p-4 z-50">
+          <div className="bg-white md:rounded-2xl w-full h-[100dvh] md:h-auto md:max-w-2xl md:max-h-[95vh] overflow-y-auto flex flex-col">
+            <div className="flex items-center justify-between p-4 md:p-6 lg:p-8 pb-2 md:pb-4 flex-shrink-0">
               <div className="flex-1 min-w-0 pr-2">
                 <h2 className="text-lg md:text-2xl font-bold text-gray-900 truncate">
                   {viewMode ? "Attendance Details" : "Photo Verification"}
@@ -737,7 +737,7 @@ export default function AttendancePage() {
               </div>
               <button
                 onClick={closeModal}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
               >
                 <svg
                   className="w-6 h-6"
@@ -755,8 +755,8 @@ export default function AttendancePage() {
               </button>
             </div>
 
-            {/* Camera view - taller aspect ratio on mobile for half-body photos */}
-            <div className="flex-1 md:flex-none mx-4 md:mx-6 lg:mx-8 bg-gray-900 rounded-xl overflow-hidden mb-4 md:mb-6 relative min-h-[50vh] md:min-h-0 md:aspect-video">
+            {/* Camera view - fills available space on mobile for half-body photos */}
+            <div className="flex-1 mx-4 md:mx-6 lg:mx-8 bg-gray-900 rounded-xl overflow-hidden mb-4 md:mb-6 relative md:flex-none md:aspect-video">
               {!capturedPhoto ? (
                 <video
                   ref={videoRef}
@@ -830,7 +830,7 @@ export default function AttendancePage() {
               </div>
             )}
 
-            <div className="flex gap-4 p-4 md:p-6 lg:p-8 pt-0 mt-auto">
+            <div className="flex gap-4 p-4 md:p-6 lg:p-8 pt-4 mt-auto flex-shrink-0 bg-white">
               {viewMode ? (
                 <button
                   onClick={closeModal}
