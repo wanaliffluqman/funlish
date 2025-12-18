@@ -41,6 +41,7 @@ export default function AttendancePage() {
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -53,7 +54,7 @@ export default function AttendancePage() {
     return matchesSearch && matchesStatus;
   });
 
-  const startCamera = async () => {
+  const startCamera = async (facing: "user" | "environment" = facingMode) => {
     try {
       // Stop any existing stream first
       if (stream) {
@@ -65,7 +66,7 @@ export default function AttendancePage() {
       try {
         mediaStream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: "user",
+            facingMode: facing,
             width: { ideal: 1280 },
             height: { ideal: 720 },
           },
@@ -73,11 +74,12 @@ export default function AttendancePage() {
       } catch (err) {
         // Fallback to basic constraints if ideal fails
         mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" },
+          video: { facingMode: facing },
         });
       }
 
       setStream(mediaStream);
+      setFacingMode(facing);
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
@@ -127,6 +129,11 @@ export default function AttendancePage() {
     setCapturedPhoto(null);
     // Restart camera for retake
     await startCamera();
+  };
+
+  const switchCamera = async () => {
+    const newFacingMode = facingMode === "user" ? "environment" : "user";
+    await startCamera(newFacingMode);
   };
 
   const confirmAttendance = () => {
@@ -758,17 +765,41 @@ export default function AttendancePage() {
             {/* Camera view - fills available space on mobile for half-body photos */}
             <div className="flex-1 mx-4 md:mx-6 lg:mx-8 bg-gray-900 rounded-xl overflow-hidden mb-4 md:mb-6 relative md:flex-none md:aspect-video">
               {!capturedPhoto ? (
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  className="w-full h-full object-cover"
-                />
+                <>
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    className={`w-full h-full object-cover ${facingMode === "user" ? "scale-x-[-1]" : ""}`}
+                  />
+                  {/* Switch Camera Button - visible on mobile */}
+                  {!viewMode && (
+                    <button
+                      onClick={switchCamera}
+                      className="absolute top-3 right-3 p-3 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors backdrop-blur-sm"
+                      title={facingMode === "user" ? "Switch to back camera" : "Switch to front camera"}
+                    >
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                    </button>
+                  )}
+                </>
               ) : (
                 <img
                   src={capturedPhoto}
                   alt="Captured"
-                  className="w-full h-full object-cover"
+                  className={`w-full h-full object-cover ${facingMode === "user" ? "scale-x-[-1]" : ""}`}
                 />
               )}
               <canvas ref={canvasRef} className="hidden" />
