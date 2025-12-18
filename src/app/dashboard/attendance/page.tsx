@@ -691,11 +691,11 @@ export default function AttendancePage() {
         </div>
       </div>
 
-      {/* Photo Capture Modal */}
+      {/* Photo Capture Modal - Full screen on mobile for easier half-body photo */}
       {selectedMember && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-4 md:p-6 lg:p-8 max-h-[95vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4 md:mb-6">
+        <div className="fixed inset-0 bg-black md:bg-opacity-50 flex items-center justify-center md:p-4 z-50">
+          <div className="bg-white md:rounded-2xl w-full h-full md:h-auto md:max-w-2xl md:max-h-[95vh] overflow-y-auto flex flex-col">
+            <div className="flex items-center justify-between p-4 md:p-6 lg:p-8 pb-2 md:pb-4">
               <div className="flex-1 min-w-0 pr-2">
                 <h2 className="text-lg md:text-2xl font-bold text-gray-900 truncate">
                   {viewMode ? "Attendance Details" : "Photo Verification"}
@@ -755,7 +755,8 @@ export default function AttendancePage() {
               </button>
             </div>
 
-            <div className="bg-gray-900 rounded-xl overflow-hidden mb-6 relative aspect-video">
+            {/* Camera view - taller aspect ratio on mobile for half-body photos */}
+            <div className="flex-1 md:flex-none mx-4 md:mx-6 lg:mx-8 bg-gray-900 rounded-xl overflow-hidden mb-4 md:mb-6 relative min-h-[50vh] md:min-h-0 md:aspect-video">
               {!capturedPhoto ? (
                 <video
                   ref={videoRef}
@@ -775,7 +776,7 @@ export default function AttendancePage() {
 
             {/* Location Details for View Mode */}
             {viewMode && selectedMember.location && (
-              <div className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
+              <div className="mx-4 md:mx-6 lg:mx-8 mb-4 md:mb-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
                     <svg
@@ -829,7 +830,7 @@ export default function AttendancePage() {
               </div>
             )}
 
-            <div className="flex gap-4">
+            <div className="flex gap-4 p-4 md:p-6 lg:p-8 pt-0 mt-auto">
               {viewMode ? (
                 <button
                   onClick={closeModal}
