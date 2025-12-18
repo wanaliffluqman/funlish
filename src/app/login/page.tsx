@@ -32,8 +32,10 @@ export default function LoginPage() {
     setIsLoading(false);
   };
 
+  const currentYear = new Date().getFullYear();
+
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden">
+    <div className="min-h-screen relative flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden">
       {/* Video Background */}
       <video
         autoPlay
@@ -186,6 +188,13 @@ export default function LoginPage() {
             </button>
           </form>
         </div>
+      </div>
+
+      {/* Copyright Footer */}
+      <div className="absolute bottom-4 left-0 right-0 text-center z-20">
+        <p className="text-white text-xs sm:text-sm opacity-80">
+          © {currentYear} Aliff Luqman. All rights reserved.
+        </p>
       </div>
     </div>
   );

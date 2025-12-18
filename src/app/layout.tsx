@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Suspense } from "react";
 import NavigationProgress from "@/components/NavigationProgress";
+import Footer from "@/components/Footer";
 import { AuthProvider } from "@/context/AuthContext";
 
 const geistSans = Geist({
@@ -36,6 +37,7 @@ export default function RootLayout({
             <NavigationProgress />
           </Suspense>
           {children}
+          <Footer />
         </AuthProvider>
       </body>
     </html>
