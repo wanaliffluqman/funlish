@@ -1,0 +1,1018 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+
+/**
+ * Team Assignment Rules:
+ * - Default number of groups: 8
+ * - Maximum participants per group: 5
+ * - Participants are randomly assigned during registration
+ *
+ * Behavior:
+ * - If total participants > 40, new groups are created automatically
+ *   without changing existing assignments
+ * - If total participants < 40, groups may have fewer than 5 members
+ *   and admins may manually adjust group assignments if needed
+ *
+ * Notes:
+ * - Existing participants are never reshuffled automatically
+ * - This design ensures balanced, fair, and stable group seating
+ */
+
+interface Participant {
+  id: string;
+  name: string;
+  registeredAt: string;
+}
+
+interface Team {
+  id: number;
+  name: string;
+  members: Participant[];
+}
+
+const MAX_MEMBERS_PER_TEAM = 5;
+const DEFAULT_TEAMS = 8;
+
+export default function TeamsPage() {
+  const { canEdit } = useAuth();
+  const canEditTeams = canEdit("teams");
+
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [totalParticipants, setTotalParticipants] = useState(0);
+  const [selectedParticipant, setSelectedParticipant] = useState<{
+    participant: Participant;
+    fromTeamId: number;
+  } | null>(null);
+  const [showMoveModal, setShowMoveModal] = useState(false);
+  const [selectedDestinationTeam, setSelectedDestinationTeam] = useState<
+    number | null
+  >(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [newParticipantName, setNewParticipantName] = useState("");
+  const [isAddingParticipant, setIsAddingParticipant] = useState(false);
+  const [assignmentResult, setAssignmentResult] = useState<{
+    participantName: string;
+    teamName: string;
+  } | null>(null);
+  const [isMovingParticipant, setIsMovingParticipant] = useState(false);
+  const [moveResult, setMoveResult] = useState<{
+    participantName: string;
+    fromTeamName: string;
+    toTeamName: string;
+  } | null>(null);
+
+  // Initialize teams with mock data
+  useEffect(() => {
+    // Mock participants - in production, this would come from an API
+    const mockParticipants: Participant[] = [
+      {
+        id: "1",
+        name: "Ahmad Haziq",
+        registeredAt: "2025-12-10",
+      },
+      {
+        id: "2",
+        name: "Siti Nurhaliza",
+        registeredAt: "2025-12-10",
+      },
+      {
+        id: "3",
+        name: "David Chen",
+        registeredAt: "2025-12-11",
+      },
+      {
+        id: "4",
+        name: "Sarah Lee",
+        registeredAt: "2025-12-11",
+      },
+      {
+        id: "5",
+        name: "Muhammad Ali",
+        registeredAt: "2025-12-12",
+      },
+      {
+        id: "6",
+        name: "Emily Wong",
+        registeredAt: "2025-12-12",
+      },
+      {
+        id: "7",
+        name: "Raj Kumar",
+        registeredAt: "2025-12-13",
+      },
+      {
+        id: "8",
+        name: "Lisa Tan",
+        registeredAt: "2025-12-13",
+      },
+      {
+        id: "9",
+        name: "John Smith",
+        registeredAt: "2025-12-14",
+      },
+      {
+        id: "10",
+        name: "Maria Garcia",
+        registeredAt: "2025-12-14",
+      },
+      {
+        id: "11",
+        name: "Wei Zhang",
+        registeredAt: "2025-12-15",
+      },
+      {
+        id: "12",
+        name: "Aisha Hassan",
+        registeredAt: "2025-12-15",
+      },
+      {
+        id: "13",
+        name: "Tom Johnson",
+        registeredAt: "2025-12-16",
+      },
+      {
+        id: "14",
+        name: "Priya Sharma",
+        registeredAt: "2025-12-16",
+      },
+      {
+        id: "15",
+        name: "Kevin Lim",
+        registeredAt: "2025-12-17",
+      },
+      {
+        id: "16",
+        name: "Natasha Ivanov",
+        registeredAt: "2025-12-17",
+      },
+      {
+        id: "17",
+        name: "Hassan Abdullah",
+        registeredAt: "2025-12-18",
+      },
+      {
+        id: "18",
+        name: "Sophie Martin",
+        registeredAt: "2025-12-18",
+      },
+      {
+        id: "19",
+        name: "Chen Wei",
+        registeredAt: "2025-12-18",
+      },
+      {
+        id: "20",
+        name: "Isabella Rossi",
+        registeredAt: "2025-12-19",
+      },
+    ];
+
+    setTotalParticipants(mockParticipants.length);
+
+    // Calculate number of teams needed
+    const teamsNeeded = Math.max(
+      DEFAULT_TEAMS,
+      Math.ceil(mockParticipants.length / MAX_MEMBERS_PER_TEAM)
+    );
+
+    // Initialize teams
+    const initialTeams: Team[] = Array.from(
+      { length: teamsNeeded },
+      (_, i) => ({
+        id: i + 1,
+        name: `Team ${String.fromCharCode(65 + i)}`, // Team A, Team B, etc.
+        members: [],
+      })
+    );
+
+    // Distribute participants randomly (simulating registration assignment)
+    const shuffled = [...mockParticipants].sort(() => Math.random() - 0.5);
+    shuffled.forEach((participant, index) => {
+      const teamIndex = index % teamsNeeded;
+      if (initialTeams[teamIndex].members.length < MAX_MEMBERS_PER_TEAM) {
+        initialTeams[teamIndex].members.push(participant);
+      }
+    });
+
+    setTeams(initialTeams);
+  }, []);
+
+  const handleMoveParticipant = (
+    participant: Participant,
+    fromTeamId: number
+  ) => {
+    setSelectedParticipant({ participant, fromTeamId });
+    setShowMoveModal(true);
+  };
+
+  const confirmMove = async (toTeamId: number) => {
+    if (!selectedParticipant || isMovingParticipant) return;
+
+    setIsMovingParticipant(true);
+
+    // Get team names before the move
+    const fromTeam = teams.find((t) => t.id === selectedParticipant.fromTeamId);
+    const toTeam = teams.find((t) => t.id === toTeamId);
+    const participantName = selectedParticipant.participant.name;
+
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    setTeams((prevTeams) =>
+      prevTeams.map((team) => {
+        // Remove from source team
+        if (team.id === selectedParticipant.fromTeamId) {
+          return {
+            ...team,
+            members: team.members.filter(
+              (m) => m.id !== selectedParticipant.participant.id
+            ),
+          };
+        }
+        // Add to destination team (allow manual moves to full teams)
+        if (team.id === toTeamId) {
+          return {
+            ...team,
+            members: [...team.members, selectedParticipant.participant],
+          };
+        }
+        return team;
+      })
+    );
+
+    setShowMoveModal(false);
+    setSelectedParticipant(null);
+    setSelectedDestinationTeam(null);
+    setIsMovingParticipant(false);
+
+    // Show move result modal
+    setMoveResult({
+      participantName,
+      fromTeamName: fromTeam?.name || "",
+      toTeamName: toTeam?.name || "",
+    });
+  };
+
+  const handleAddTeam = () => {
+    const newTeamId = teams.length + 1;
+    const newTeamName = `Team ${String.fromCharCode(64 + newTeamId)}`;
+    setTeams([
+      ...teams,
+      {
+        id: newTeamId,
+        name: newTeamName,
+        members: [],
+      },
+    ]);
+  };
+
+  const handleAddParticipant = async () => {
+    const name = newParticipantName.trim();
+    if (!name || isAddingParticipant) return;
+
+    setIsAddingParticipant(true);
+
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    const newParticipant: Participant = {
+      id: `new-${Date.now()}`,
+      name: name,
+      registeredAt: new Date().toISOString().split("T")[0],
+    };
+
+    // Calculate team assignment first
+    const availableTeams = teams.filter(
+      (team) => team.members.length < MAX_MEMBERS_PER_TEAM
+    );
+
+    let assignedTeamName = "";
+    let assignedTeamId: number | null = null;
+
+    if (availableTeams.length === 0) {
+      // Need to create a new team
+      const newTeamId = teams.length + 1;
+      assignedTeamName = `Team ${String.fromCharCode(64 + newTeamId)}`;
+      assignedTeamId = newTeamId;
+
+      const newTeam: Team = {
+        id: newTeamId,
+        name: assignedTeamName,
+        members: [newParticipant],
+      };
+      setTeams([...teams, newTeam]);
+    } else {
+      // Randomly select a team from available teams
+      const randomTeam =
+        availableTeams[Math.floor(Math.random() * availableTeams.length)];
+      assignedTeamName = randomTeam.name;
+      assignedTeamId = randomTeam.id;
+
+      // Add participant to the selected team
+      setTeams(
+        teams.map((team) =>
+          team.id === assignedTeamId
+            ? { ...team, members: [...team.members, newParticipant] }
+            : team
+        )
+      );
+    }
+
+    setTotalParticipants((prev) => prev + 1);
+    setNewParticipantName("");
+    setIsAddingParticipant(false);
+
+    // Show assignment result modal
+    setAssignmentResult({
+      participantName: name,
+      teamName: assignedTeamName,
+    });
+  };
+
+  const filteredTeams = teams.filter(
+    (team) =>
+      team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      team.members.some((member) =>
+        member.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+  );
+
+  const teamStats = {
+    totalTeams: teams.length,
+    totalParticipants,
+    averagePerTeam: (totalParticipants / teams.length).toFixed(1),
+    fullTeams: teams.filter((t) => t.members.length === MAX_MEMBERS_PER_TEAM)
+      .length,
+  };
+
+  return (
+    <div className="space-y-4 md:space-y-6">
+      {/* View Only Banner */}
+      {!canEditTeams && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center gap-3">
+          <svg
+            className="w-5 h-5 text-yellow-600 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+            />
+          </svg>
+          <p className="text-sm text-yellow-800">
+            <span className="font-semibold">View Only Mode:</span> You can view
+            team assignments but cannot make changes.
+          </p>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="mb-4 md:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+          Registration & Team Assignment
+        </h1>
+        <p className="text-sm sm:text-base text-gray-600">
+          {canEditTeams
+            ? "Manage team assignments and group seating"
+            : "View team assignments and group seating"}
+        </p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
+        <div className="bg-white rounded-lg shadow p-4 md:p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs md:text-sm text-gray-600">Total Teams</p>
+              <p className="text-xl md:text-2xl font-bold text-gray-900">
+                {teamStats.totalTeams}
+              </p>
+            </div>
+            <div className="bg-indigo-100 p-2 md:p-3 rounded-lg">
+              <svg
+                className="w-5 h-5 md:w-6 md:h-6 text-indigo-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-4 md:p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs md:text-sm text-gray-600">
+                Total Participants
+              </p>
+              <p className="text-xl md:text-2xl font-bold text-gray-900">
+                {teamStats.totalParticipants}
+              </p>
+            </div>
+            <div className="bg-green-100 p-2 md:p-3 rounded-lg">
+              <svg
+                className="w-5 h-5 md:w-6 md:h-6 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Average per Team</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {teamStats.averagePerTeam}
+              </p>
+            </div>
+            <div className="bg-yellow-100 p-3 rounded-lg">
+              <svg
+                className="w-6 h-6 text-yellow-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Full Teams</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {teamStats.fullTeams}
+              </p>
+            </div>
+            <div className="bg-purple-100 p-3 rounded-lg">
+              <svg
+                className="w-6 h-6 text-purple-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Info Banner */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 md:p-4 mb-4 md:mb-6">
+        <div className="flex items-start">
+          <svg
+            className="w-4 h-4 md:w-5 md:h-5 text-blue-600 mt-0.5 mr-2 md:mr-3 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <div className="text-xs md:text-sm text-blue-800">
+            <p className="font-semibold mb-1">Team Assignment Rules:</p>
+            <ul className="list-disc list-inside space-y-0.5 md:space-y-1">
+              <li>Maximum {MAX_MEMBERS_PER_TEAM} participants per team</li>
+              <li>Participants are randomly assigned during registration</li>
+              <li>
+                New teams are created automatically when total participants
+                exceed {DEFAULT_TEAMS * MAX_MEMBERS_PER_TEAM}
+              </li>
+              <li>Existing participants are never reshuffled automatically</li>
+              <li>Admins can manually reassign participants between teams</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Actions Bar */}
+      <div className="bg-white rounded-lg shadow p-3 md:p-4 mb-4 md:mb-6">
+        <div className="flex flex-col gap-4">
+          {/* Search */}
+          <div className="flex-1 w-full">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search teams or participants..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder:text-gray-600 text-gray-900"
+              />
+              <svg
+                className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Add Participant Form */}
+          {canEditTeams && (
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  placeholder="Enter participant name..."
+                  value={newParticipantName}
+                  onChange={(e) => setNewParticipantName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !isAddingParticipant) {
+                      handleAddParticipant();
+                    }
+                  }}
+                  disabled={isAddingParticipant}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent placeholder:text-gray-600 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                />
+              </div>
+              <button
+                onClick={handleAddParticipant}
+                disabled={isAddingParticipant || !newParticipantName.trim()}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 whitespace-nowrap disabled:bg-green-400 disabled:cursor-not-allowed min-w-[140px]"
+              >
+                {isAddingParticipant ? (
+                  <>
+                    <svg
+                      className="w-4 h-4 md:w-5 md:h-5 animate-spin"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    <span className="hidden sm:inline">Assigning...</span>
+                    <span className="sm:hidden">...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-4 h-4 md:w-5 md:h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                      />
+                    </svg>
+                    <span className="hidden sm:inline">Add Participant</span>
+                    <span className="sm:hidden">Add</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Teams Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
+        {filteredTeams.map((team) => (
+          <div
+            key={team.id}
+            className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
+          >
+            {/* Team Header */}
+            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-3 md:p-4">
+              <div className="flex items-center justify-between text-white">
+                <h3 className="text-base md:text-lg font-bold">{team.name}</h3>
+                <div className="bg-white/20 backdrop-blur-sm px-2 md:px-3 py-1 rounded-full">
+                  <span className="text-xs md:text-sm font-semibold">
+                    {team.members.length}/{MAX_MEMBERS_PER_TEAM}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Team Members */}
+            <div className="p-3 md:p-4">
+              {team.members.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <svg
+                    className="w-12 h-12 mx-auto mb-2 opacity-50"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                    />
+                  </svg>
+                  <p className="text-sm">No members yet</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {team.members.map((member, index) => (
+                    <div
+                      key={member.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                          {index + 1}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-gray-900 truncate">
+                            {member.name}
+                          </p>
+                        </div>
+                      </div>
+                      {canEditTeams && (
+                        <button
+                          onClick={() => handleMoveParticipant(member, team.id)}
+                          className="ml-2 p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                          title="Move to another team"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                            />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Capacity Indicator */}
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="text-gray-600">Capacity</span>
+                  <span
+                    className={`font-semibold ${
+                      team.members.length === MAX_MEMBERS_PER_TEAM
+                        ? "text-red-600"
+                        : team.members.length >= MAX_MEMBERS_PER_TEAM - 1
+                        ? "text-yellow-600"
+                        : "text-green-600"
+                    }`}
+                  >
+                    {team.members.length === MAX_MEMBERS_PER_TEAM
+                      ? "Full"
+                      : `${
+                          MAX_MEMBERS_PER_TEAM - team.members.length
+                        } spots left`}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all ${
+                      team.members.length === MAX_MEMBERS_PER_TEAM
+                        ? "bg-red-500"
+                        : team.members.length >= MAX_MEMBERS_PER_TEAM - 1
+                        ? "bg-yellow-500"
+                        : "bg-green-500"
+                    }`}
+                    style={{
+                      width: `${
+                        (team.members.length / MAX_MEMBERS_PER_TEAM) * 100
+                      }%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Move Participant Modal */}
+      {showMoveModal && selectedParticipant && (
+        <div className="fixed inset-0 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-gray-900">
+                Move {selectedParticipant.participant.name}
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Select a destination team (manual moves can exceed team
+                capacity)
+              </p>
+            </div>
+
+            <div className="p-6 space-y-3">
+              {teams
+                .filter((team) => team.id !== selectedParticipant.fromTeamId)
+                .map((team) => (
+                  <button
+                    key={team.id}
+                    onClick={() => setSelectedDestinationTeam(team.id)}
+                    className={`w-full p-4 border-2 rounded-lg transition-all text-left group ${
+                      selectedDestinationTeam === team.id
+                        ? "border-indigo-500 bg-indigo-50"
+                        : "border-gray-200 hover:border-indigo-500 hover:bg-indigo-50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p
+                          className={`font-semibold ${
+                            selectedDestinationTeam === team.id
+                              ? "text-indigo-600"
+                              : "text-gray-900 group-hover:text-indigo-600"
+                          }`}
+                        >
+                          {team.name}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {team.members.length} members
+                          {team.members.length >= MAX_MEMBERS_PER_TEAM && (
+                            <span className="text-orange-600 ml-1">(Full)</span>
+                          )}
+                        </p>
+                      </div>
+                      {selectedDestinationTeam === team.id ? (
+                        <svg
+                          className="w-6 h-6 text-indigo-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          className="w-6 h-6 text-gray-400 group-hover:text-indigo-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                  </button>
+                ))}
+            </div>
+
+            <div className="p-6 border-t border-gray-200 bg-gray-50 flex gap-3">
+              <button
+                onClick={() => {
+                  setShowMoveModal(false);
+                  setSelectedParticipant(null);
+                  setSelectedDestinationTeam(null);
+                }}
+                disabled={isMovingParticipant}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (selectedDestinationTeam) {
+                    confirmMove(selectedDestinationTeam);
+                  }
+                }}
+                disabled={!selectedDestinationTeam || isMovingParticipant}
+                className={`flex-1 px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                  selectedDestinationTeam && !isMovingParticipant
+                    ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                }`}
+              >
+                {isMovingParticipant ? (
+                  <>
+                    <svg
+                      className="w-4 h-4 animate-spin"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Moving...
+                  </>
+                ) : (
+                  "Confirm Move"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Move Participant Result Modal */}
+      {moveResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 md:p-8 text-center">
+            {/* Success Icon */}
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="w-8 h-8 text-blue-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                />
+              </svg>
+            </div>
+
+            {/* Title */}
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+              Move Successful!
+            </h2>
+
+            {/* Message */}
+            <p className="text-gray-600 mb-4">
+              <span className="font-semibold text-gray-900">
+                {moveResult.participantName}
+              </span>{" "}
+              has been moved to a new team:
+            </p>
+
+            {/* Team Change Display */}
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <div className="bg-gray-100 px-4 py-3 rounded-xl text-center">
+                <p className="text-xs text-gray-500">From</p>
+                <p className="font-semibold text-gray-700">
+                  {moveResult.fromTeamName}
+                </p>
+              </div>
+              <svg
+                className="w-6 h-6 text-indigo-500 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 7l5 5m0 0l-5 5m5-5H6"
+                />
+              </svg>
+              <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-3 rounded-xl text-center">
+                <p className="text-xs opacity-90">To</p>
+                <p className="font-semibold">{moveResult.toTeamName}</p>
+              </div>
+            </div>
+
+            {/* Close Button */}
+            <button
+              onClick={() => setMoveResult(null)}
+              className="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold"
+            >
+              Okay
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Team Assignment Result Modal */}
+      {assignmentResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 md:p-8 text-center">
+            {/* Success Icon */}
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="w-8 h-8 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+
+            {/* Title */}
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+              Registration Successful!
+            </h2>
+
+            {/* Message */}
+            <p className="text-gray-600 mb-4">
+              <span className="font-semibold text-gray-900">
+                {assignmentResult.participantName}
+              </span>{" "}
+              has been registered and assigned to:
+            </p>
+
+            {/* Team Badge */}
+            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-4 rounded-xl mb-6">
+              <p className="text-sm opacity-90">Assigned Team</p>
+              <p className="text-2xl font-bold">{assignmentResult.teamName}</p>
+            </div>
+
+            {/* Close Button */}
+            <button
+              onClick={() => setAssignmentResult(null)}
+              className="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold"
+            >
+              Okay
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
