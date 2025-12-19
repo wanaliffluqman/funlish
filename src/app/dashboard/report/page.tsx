@@ -173,34 +173,6 @@ export default function ReportPage() {
             </p>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6">
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-              <p className="text-xs text-gray-600 mb-1">Total</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-            </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-              <p className="text-xs text-gray-600 mb-1">Attend</p>
-              <p className="text-2xl font-bold text-green-600">
-                {stats.attend}
-              </p>
-            </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-              <p className="text-xs text-gray-600 mb-1">Absent</p>
-              <p className="text-2xl font-bold text-red-600">{stats.absent}</p>
-            </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-              <p className="text-xs text-gray-600 mb-1">Pending</p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {stats.pending}
-              </p>
-            </div>
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl p-4 shadow-sm col-span-2 md:col-span-1">
-              <p className="text-xs text-white/80 mb-1">Attendance Rate</p>
-              <p className="text-2xl font-bold text-white">{attendanceRate}%</p>
-            </div>
-          </div>
-
           {/* Print-Only Card Grid - Shows full details for each committee member */}
           <div className="hidden print:block">
             <div className="grid grid-cols-2 gap-4">
