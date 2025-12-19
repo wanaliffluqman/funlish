@@ -328,7 +328,7 @@ export default function ReportPage() {
               {/* Logo */}
               <div style={{ marginBottom: "40px" }}>
                 <img
-                  src="/Pictures/funlish-logo.svg"
+                  src="/Pictures/funlish-logo.jpeg"
                   alt="Funlish Logo"
                   style={{ width: "200px", height: "200px", margin: "0 auto" }}
                 />

@@ -35,6 +35,8 @@ export interface Database {
           department: Department;
           role: UserRole;
           status: UserStatus;
+          session_token: string | null;
+          session_updated_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -46,6 +48,8 @@ export interface Database {
           department?: Department;
           role?: UserRole;
           status?: UserStatus;
+          session_token?: string | null;
+          session_updated_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -57,6 +61,8 @@ export interface Database {
           department?: Department;
           role?: UserRole;
           status?: UserStatus;
+          session_token?: string | null;
+          session_updated_at?: string | null;
           updated_at?: string;
         };
         Relationships: [];
