@@ -15,13 +15,11 @@ function getDepartmentDisplayName(department: Department): string {
     fnb: "Food & Beverage",
     sponsorship_finance: "Sponsorship & Finance",
     logistics_operations: "Logistics & Operations",
-    technical_it: "Technical & IT",
+    technical_it_support: "Technical & IT Support",
     evaluation_research_documentation: "Evaluation, Research & Documentation",
     health_safety_welfare: "Health, Safety & Welfare",
     executive: "Executive",
     program_activities: "Program & Activities",
-    media: "Media",
-    documentation: "Documentation",
   };
   return displayNames[department] || department;
 }
