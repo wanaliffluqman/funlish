@@ -1,30 +1,18 @@
 "use client";
 
-import { useState } from "react";
-
-type UserRole =
-  | "admin"
-  | "chairperson"
-  | "protocol"
-  | "registration_coordinator"
-  | "committee";
-
-type Department =
-  | "leadership"
-  | "logistics"
-  | "media"
-  | "registration"
-  | "protocol"
-  | "technical";
+import { useState, useEffect } from "react";
+import bcrypt from "bcryptjs";
+import { supabase } from "@/lib/supabase";
+import type { UserRole, Department, UserStatus } from "@/types/database.types";
 
 interface User {
-  id: string;
+  id: number;
   name: string;
   username: string;
   department: Department;
   role: UserRole;
-  createdAt: string;
-  status: "active" | "inactive";
+  created_at: string;
+  status: UserStatus;
 }
 
 const ROLE_DISPLAY_NAMES: Record<UserRole, string> = {
@@ -35,69 +23,65 @@ const ROLE_DISPLAY_NAMES: Record<UserRole, string> = {
   committee: "Committee",
 };
 
-const DEPARTMENT_DISPLAY_NAMES: Record<Department, string> = {
-  leadership: "Leadership",
-  logistics: "Logistics",
-  media: "Media",
-  registration: "Registration",
-  protocol: "Protocol",
-  technical: "Technical",
+const DEPARTMENT_DISPLAY_NAMES: Record<string, string> = {
+  administrator: "Administrator",
+  pr_communication: "PR & Communication",
+  protocol_ceremonial: "Protocol & Ceremonial",
+  fnb: "F&B",
+  sponsorship_finance: "Sponsorship & Finance",
+  logistics_operations: "Logistics & Operations",
+  technical_it_support: "Technical & IT Support",
+  evaluation_research_documentation: "Evaluation, Research & Documentation",
+  health_safety_welfare: "Health, Safety & Welfare",
+  executive: "Executive",
+  program_activities: "Program & Activities",
 };
 
 export default function UserManagementPage() {
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: "1",
-      name: "Ahmad Haziq",
-      username: "ahmad.haziq",
-      department: "leadership",
-      role: "chairperson",
-      createdAt: "2025-01-10",
-      status: "active",
-    },
-    {
-      id: "2",
-      name: "Siti Nurhaliza",
-      username: "siti.nurhaliza",
-      department: "protocol",
-      role: "protocol",
-      createdAt: "2025-01-15",
-      status: "active",
-    },
-    {
-      id: "3",
-      name: "Lee Wei Ming",
-      username: "lee.weiming",
-      department: "registration",
-      role: "registration_coordinator",
-      createdAt: "2025-01-20",
-      status: "active",
-    },
-    {
-      id: "4",
-      name: "Priya Sharma",
-      username: "priya.sharma",
-      department: "media",
-      role: "committee",
-      createdAt: "2025-01-25",
-      status: "active",
-    },
-  ]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [showModal, setShowModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     username: "",
     password: "",
     confirmPassword: "",
-    department: "logistics" as Department,
+    department: "logistics_operations" as Department,
     role: "committee" as UserRole,
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const validateForm = () => {
+  // Fetch users from Supabase
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, name, username, department, role, status, created_at")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      setUsers(data || []);
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching users:", err);
+      setError("Failed to load users. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const validateForm = async () => {
     const errors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
@@ -108,12 +92,17 @@ export default function UserManagementPage() {
       errors.username = "Username is required";
     } else if (formData.username.length < 3) {
       errors.username = "Username must be at least 3 characters";
-    } else if (
-      users.some(
-        (u) => u.username.toLowerCase() === formData.username.toLowerCase()
-      )
-    ) {
-      errors.username = "Username already exists";
+    } else {
+      // Check if username already exists in database
+      const { data: existingUser } = await supabase
+        .from("users")
+        .select("id")
+        .eq("username", formData.username.toLowerCase())
+        .single();
+
+      if (existingUser) {
+        errors.username = "Username already exists";
+      }
     }
 
     if (!formData.password) {
@@ -132,52 +121,94 @@ export default function UserManagementPage() {
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    const isValid = await validateForm();
+    if (!isValid) return;
 
-    const newUser: User = {
-      id: (users.length + 1).toString(),
-      name: formData.name,
-      username: formData.username,
-      department: formData.department,
-      role: formData.role,
-      createdAt: new Date().toISOString().split("T")[0],
-      status: "active",
-    };
-    setUsers([...users, newUser]);
-    setShowModal(false);
-    setFormData({
-      name: "",
-      username: "",
-      password: "",
-      confirmPassword: "",
-      department: "logistics",
-      role: "committee",
-    });
-    setFormErrors({});
-    alert(
-      `Account created successfully!\n\nUsername: ${formData.username}\n\nPlease share these credentials with the user securely.`
-    );
+    setIsSubmitting(true);
+
+    try {
+      // Hash the password before storing
+      const hashedPassword = await bcrypt.hash(formData.password, 10);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from("users") as any).insert({
+        name: formData.name.trim(),
+        username: formData.username.toLowerCase().trim(),
+        password: hashedPassword,
+        department: formData.department,
+        role: formData.role,
+        status: "active",
+      });
+
+      if (error) throw error;
+
+      // Refresh users list
+      await fetchUsers();
+
+      setShowModal(false);
+      setFormData({
+        name: "",
+        username: "",
+        password: "",
+        confirmPassword: "",
+        department: "logistics_operations",
+        role: "committee",
+      });
+      setFormErrors({});
+      alert(
+        `Account created successfully!\n\nUsername: ${formData.username}\n\nPlease share these credentials with the user securely.`
+      );
+    } catch (err: unknown) {
+      console.error("Error creating user:", err);
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Failed to create user. Please try again.";
+      alert(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const toggleUserStatus = (userId: string) => {
-    setUsers(
-      users.map((user) =>
-        user.id === userId
-          ? {
-              ...user,
-              status: user.status === "active" ? "inactive" : "active",
-            }
-          : user
-      )
-    );
+  const toggleUserStatus = async (userId: number, currentStatus: string) => {
+    const newStatus = currentStatus === "active" ? "inactive" : "active";
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from("users") as any)
+        .update({ status: newStatus })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      // Update local state
+      setUsers(
+        users.map((user) =>
+          user.id === userId ? { ...user, status: newStatus } : user
+        )
+      );
+    } catch (err) {
+      console.error("Error updating user status:", err);
+      alert("Failed to update user status. Please try again.");
+    }
   };
 
-  const deleteUser = (userId: string) => {
-    if (confirm("Are you sure you want to delete this user?")) {
+  const deleteUser = async (userId: number) => {
+    if (!confirm("Are you sure you want to delete this user?")) return;
+
+    try {
+      const { error } = await supabase.from("users").delete().eq("id", userId);
+
+      if (error) throw error;
+
+      // Update local state
       setUsers(users.filter((user) => user.id !== userId));
+    } catch (err) {
+      console.error("Error deleting user:", err);
+      alert("Failed to delete user. Please try again.");
     }
   };
 
@@ -188,6 +219,37 @@ export default function UserManagementPage() {
     committees: users.filter((u) => u.role === "committee").length,
     active: users.filter((u) => u.status === "active").length,
   };
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-MY", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <p className="text-red-600">{error}</p>
+        <button
+          onClick={fetchUsers}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -402,7 +464,9 @@ export default function UserManagementPage() {
                       {ROLE_DISPLAY_NAMES[user.role]}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-gray-600">{user.createdAt}</td>
+                  <td className="px-6 py-4 text-gray-600">
+                    {formatDate(user.created_at)}
+                  </td>
                   <td className="px-6 py-4">
                     <span
                       className={`px-3 py-1 rounded-lg text-sm font-medium ${
@@ -418,7 +482,7 @@ export default function UserManagementPage() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => toggleUserStatus(user.id)}
+                        onClick={() => toggleUserStatus(user.id, user.status)}
                         className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                         title={
                           user.status === "active"
@@ -526,12 +590,12 @@ export default function UserManagementPage() {
                   {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
                 </span>
                 <span className="px-2 py-1 rounded text-xs text-gray-600 bg-gray-50">
-                  {user.createdAt}
+                  {formatDate(user.created_at)}
                 </span>
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => toggleUserStatus(user.id)}
+                  onClick={() => toggleUserStatus(user.id, user.status)}
                   className="flex-1 p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
                 >
                   {user.status === "active" ? "Deactivate" : "Activate"}
@@ -811,12 +875,31 @@ export default function UserManagementPage() {
                   }
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none text-gray-900"
                 >
-                  <option value="leadership">Leadership</option>
-                  <option value="logistics">Logistics</option>
+                  <option value="administrator">Administrator</option>
+                  <option value="pr_communication">PR & Communication</option>
+                  <option value="protocol_ceremonial">
+                    Protocol & Ceremonial
+                  </option>
+                  <option value="fnb">F&B</option>
+                  <option value="sponsorship_finance">
+                    Sponsorship & Finance
+                  </option>
+                  <option value="logistics_operations">
+                    Logistics & Operations
+                  </option>
+                  <option value="technical_it">Technical & IT Support</option>
+                  <option value="evaluation_research_documentation">
+                    Evaluation, Research & Documentation
+                  </option>
+                  <option value="health_safety_welfare">
+                    Health, Safety & Welfare
+                  </option>
+                  <option value="executive">Executive</option>
+                  <option value="program_activities">
+                    Program & Activities
+                  </option>
                   <option value="media">Media</option>
-                  <option value="registration">Registration</option>
-                  <option value="protocol">Protocol</option>
-                  <option value="technical">Technical</option>
+                  <option value="documentation">Documentation</option>
                 </select>
               </div>
 

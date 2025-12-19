@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 /**
  * Team Assignment Rules:
@@ -21,7 +22,7 @@ import { useAuth } from "@/context/AuthContext";
  */
 
 interface Participant {
-  id: string;
+  id: number;
   name: string;
   registeredAt: string;
 }
@@ -62,142 +63,66 @@ export default function TeamsPage() {
     fromTeamName: string;
     toTeamName: string;
   } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Initialize teams with mock data
-  useEffect(() => {
-    // Mock participants - in production, this would come from an API
-    const mockParticipants: Participant[] = [
-      {
-        id: "1",
-        name: "Ahmad Haziq",
-        registeredAt: "2025-12-10",
-      },
-      {
-        id: "2",
-        name: "Siti Nurhaliza",
-        registeredAt: "2025-12-10",
-      },
-      {
-        id: "3",
-        name: "David Chen",
-        registeredAt: "2025-12-11",
-      },
-      {
-        id: "4",
-        name: "Sarah Lee",
-        registeredAt: "2025-12-11",
-      },
-      {
-        id: "5",
-        name: "Muhammad Ali",
-        registeredAt: "2025-12-12",
-      },
-      {
-        id: "6",
-        name: "Emily Wong",
-        registeredAt: "2025-12-12",
-      },
-      {
-        id: "7",
-        name: "Raj Kumar",
-        registeredAt: "2025-12-13",
-      },
-      {
-        id: "8",
-        name: "Lisa Tan",
-        registeredAt: "2025-12-13",
-      },
-      {
-        id: "9",
-        name: "John Smith",
-        registeredAt: "2025-12-14",
-      },
-      {
-        id: "10",
-        name: "Maria Garcia",
-        registeredAt: "2025-12-14",
-      },
-      {
-        id: "11",
-        name: "Wei Zhang",
-        registeredAt: "2025-12-15",
-      },
-      {
-        id: "12",
-        name: "Aisha Hassan",
-        registeredAt: "2025-12-15",
-      },
-      {
-        id: "13",
-        name: "Tom Johnson",
-        registeredAt: "2025-12-16",
-      },
-      {
-        id: "14",
-        name: "Priya Sharma",
-        registeredAt: "2025-12-16",
-      },
-      {
-        id: "15",
-        name: "Kevin Lim",
-        registeredAt: "2025-12-17",
-      },
-      {
-        id: "16",
-        name: "Natasha Ivanov",
-        registeredAt: "2025-12-17",
-      },
-      {
-        id: "17",
-        name: "Hassan Abdullah",
-        registeredAt: "2025-12-18",
-      },
-      {
-        id: "18",
-        name: "Sophie Martin",
-        registeredAt: "2025-12-18",
-      },
-      {
-        id: "19",
-        name: "Chen Wei",
-        registeredAt: "2025-12-18",
-      },
-      {
-        id: "20",
-        name: "Isabella Rossi",
-        registeredAt: "2025-12-19",
-      },
-    ];
+  // Fetch teams and participants from Supabase
+  const fetchTeamsAndParticipants = useCallback(async () => {
+    try {
+      setError(null);
 
-    setTotalParticipants(mockParticipants.length);
+      // Fetch all groups
+      const { data: groupsData, error: groupsError } = await supabase
+        .from("groups")
+        .select("*")
+        .order("id", { ascending: true });
 
-    // Calculate number of teams needed
-    const teamsNeeded = Math.max(
-      DEFAULT_TEAMS,
-      Math.ceil(mockParticipants.length / MAX_MEMBERS_PER_TEAM)
-    );
+      if (groupsError) throw groupsError;
 
-    // Initialize teams
-    const initialTeams: Team[] = Array.from(
-      { length: teamsNeeded },
-      (_, i) => ({
-        id: i + 1,
-        name: `Team ${String.fromCharCode(65 + i)}`, // Team A, Team B, etc.
+      // Fetch all participants with their group assignments
+      const { data: participantsData, error: participantsError } =
+        await supabase
+          .from("participants")
+          .select("*")
+          .order("registered_at", { ascending: true });
+
+      if (participantsError) throw participantsError;
+
+      // Build teams structure
+      const teamsMap: Team[] = (groupsData || []).map((group) => ({
+        id: group.id,
+        name: group.name,
         members: [],
-      })
-    );
+      }));
 
-    // Distribute participants randomly (simulating registration assignment)
-    const shuffled = [...mockParticipants].sort(() => Math.random() - 0.5);
-    shuffled.forEach((participant, index) => {
-      const teamIndex = index % teamsNeeded;
-      if (initialTeams[teamIndex].members.length < MAX_MEMBERS_PER_TEAM) {
-        initialTeams[teamIndex].members.push(participant);
-      }
-    });
+      // Assign participants to their teams
+      (participantsData || []).forEach((participant) => {
+        if (participant.group_id) {
+          const team = teamsMap.find((t) => t.id === participant.group_id);
+          if (team) {
+            team.members.push({
+              id: participant.id,
+              name: participant.name,
+              registeredAt: participant.registered_at.split("T")[0],
+            });
+          }
+        }
+      });
 
-    setTeams(initialTeams);
+      setTeams(teamsMap);
+      setTotalParticipants(participantsData?.length || 0);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      setError("Failed to load teams and participants");
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  // Initialize data on mount
+  useEffect(() => {
+    fetchTeamsAndParticipants();
+  }, [fetchTeamsAndParticipants]);
 
   const handleMoveParticipant = (
     participant: Participant,
@@ -217,55 +142,81 @@ export default function TeamsPage() {
     const toTeam = teams.find((t) => t.id === toTeamId);
     const participantName = selectedParticipant.participant.name;
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // Update participant's group_id in Supabase
+      const { error } = await supabase
+        .from("participants")
+        .update({ group_id: toTeamId })
+        .eq("id", selectedParticipant.participant.id);
 
-    setTeams((prevTeams) =>
-      prevTeams.map((team) => {
-        // Remove from source team
-        if (team.id === selectedParticipant.fromTeamId) {
-          return {
-            ...team,
-            members: team.members.filter(
-              (m) => m.id !== selectedParticipant.participant.id
-            ),
-          };
-        }
-        // Add to destination team (allow manual moves to full teams)
-        if (team.id === toTeamId) {
-          return {
-            ...team,
-            members: [...team.members, selectedParticipant.participant],
-          };
-        }
-        return team;
-      })
-    );
+      if (error) throw error;
 
-    setShowMoveModal(false);
-    setSelectedParticipant(null);
-    setSelectedDestinationTeam(null);
-    setIsMovingParticipant(false);
+      // Update local state
+      setTeams((prevTeams) =>
+        prevTeams.map((team) => {
+          // Remove from source team
+          if (team.id === selectedParticipant.fromTeamId) {
+            return {
+              ...team,
+              members: team.members.filter(
+                (m) => m.id !== selectedParticipant.participant.id
+              ),
+            };
+          }
+          // Add to destination team
+          if (team.id === toTeamId) {
+            return {
+              ...team,
+              members: [...team.members, selectedParticipant.participant],
+            };
+          }
+          return team;
+        })
+      );
 
-    // Show move result modal
-    setMoveResult({
-      participantName,
-      fromTeamName: fromTeam?.name || "",
-      toTeamName: toTeam?.name || "",
-    });
+      // Show move result modal
+      setMoveResult({
+        participantName,
+        fromTeamName: fromTeam?.name || "",
+        toTeamName: toTeam?.name || "",
+      });
+    } catch (err) {
+      console.error("Error moving participant:", err);
+      setError("Failed to move participant");
+    } finally {
+      setShowMoveModal(false);
+      setSelectedParticipant(null);
+      setSelectedDestinationTeam(null);
+      setIsMovingParticipant(false);
+    }
   };
 
-  const handleAddTeam = () => {
-    const newTeamId = teams.length + 1;
-    const newTeamName = `Team ${String.fromCharCode(64 + newTeamId)}`;
-    setTeams([
-      ...teams,
-      {
-        id: newTeamId,
-        name: newTeamName,
-        members: [],
-      },
-    ]);
+  const handleAddTeam = async () => {
+    try {
+      const newTeamName = `Team ${teams.length + 1}`;
+
+      // Insert new group into Supabase
+      const { data, error } = await supabase
+        .from("groups")
+        .insert({ name: newTeamName })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update local state
+      setTeams([
+        ...teams,
+        {
+          id: data.id,
+          name: data.name,
+          members: [],
+        },
+      ]);
+    } catch (err) {
+      console.error("Error adding team:", err);
+      setError("Failed to add team");
+    }
   };
 
   const handleAddParticipant = async () => {
@@ -274,61 +225,86 @@ export default function TeamsPage() {
 
     setIsAddingParticipant(true);
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // Find available teams (not full)
+      const availableTeams = teams.filter(
+        (team) => team.members.length < MAX_MEMBERS_PER_TEAM
+      );
 
-    const newParticipant: Participant = {
-      id: `new-${Date.now()}`,
-      name: name,
-      registeredAt: new Date().toISOString().split("T")[0],
-    };
+      let assignedTeamId: number;
+      let assignedTeamName: string;
 
-    // Calculate team assignment first
-    const availableTeams = teams.filter(
-      (team) => team.members.length < MAX_MEMBERS_PER_TEAM
-    );
+      if (availableTeams.length === 0) {
+        // Need to create a new team first
+        const newTeamName = `Team ${teams.length + 1}`;
 
-    let assignedTeamName = "";
-    let assignedTeamId: number | null = null;
+        const { data: newGroupData, error: groupError } = await supabase
+          .from("groups")
+          .insert({ name: newTeamName })
+          .select()
+          .single();
 
-    if (availableTeams.length === 0) {
-      // Need to create a new team
-      const newTeamId = teams.length + 1;
-      assignedTeamName = `Team ${String.fromCharCode(64 + newTeamId)}`;
-      assignedTeamId = newTeamId;
+        if (groupError) throw groupError;
 
-      const newTeam: Team = {
-        id: newTeamId,
-        name: assignedTeamName,
-        members: [newParticipant],
+        assignedTeamId = newGroupData.id;
+        assignedTeamName = newGroupData.name;
+
+        // Add new team to local state
+        const newTeam: Team = {
+          id: newGroupData.id,
+          name: newGroupData.name,
+          members: [],
+        };
+        setTeams((prev) => [...prev, newTeam]);
+      } else {
+        // Randomly select a team from available teams
+        const randomTeam =
+          availableTeams[Math.floor(Math.random() * availableTeams.length)];
+        assignedTeamId = randomTeam.id;
+        assignedTeamName = randomTeam.name;
+      }
+
+      // Insert participant into Supabase
+      const { data: participantData, error: participantError } = await supabase
+        .from("participants")
+        .insert({
+          name: name,
+          group_id: assignedTeamId,
+        })
+        .select()
+        .single();
+
+      if (participantError) throw participantError;
+
+      const newParticipant: Participant = {
+        id: participantData.id,
+        name: participantData.name,
+        registeredAt: participantData.registered_at.split("T")[0],
       };
-      setTeams([...teams, newTeam]);
-    } else {
-      // Randomly select a team from available teams
-      const randomTeam =
-        availableTeams[Math.floor(Math.random() * availableTeams.length)];
-      assignedTeamName = randomTeam.name;
-      assignedTeamId = randomTeam.id;
 
-      // Add participant to the selected team
-      setTeams(
-        teams.map((team) =>
+      // Update local state - add participant to the assigned team
+      setTeams((prevTeams) =>
+        prevTeams.map((team) =>
           team.id === assignedTeamId
             ? { ...team, members: [...team.members, newParticipant] }
             : team
         )
       );
+
+      setTotalParticipants((prev) => prev + 1);
+      setNewParticipantName("");
+
+      // Show assignment result modal
+      setAssignmentResult({
+        participantName: name,
+        teamName: assignedTeamName,
+      });
+    } catch (err) {
+      console.error("Error adding participant:", err);
+      setError("Failed to add participant");
+    } finally {
+      setIsAddingParticipant(false);
     }
-
-    setTotalParticipants((prev) => prev + 1);
-    setNewParticipantName("");
-    setIsAddingParticipant(false);
-
-    // Show assignment result modal
-    setAssignmentResult({
-      participantName: name,
-      teamName: assignedTeamName,
-    });
   };
 
   const filteredTeams = teams.filter(
@@ -342,13 +318,84 @@ export default function TeamsPage() {
   const teamStats = {
     totalTeams: teams.length,
     totalParticipants,
-    averagePerTeam: (totalParticipants / teams.length).toFixed(1),
+    averagePerTeam:
+      teams.length > 0 ? (totalParticipants / teams.length).toFixed(1) : "0",
     fullTeams: teams.filter((t) => t.members.length === MAX_MEMBERS_PER_TEAM)
       .length,
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <svg
+            className="w-12 h-12 mx-auto mb-4 text-indigo-600 animate-spin"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            />
+          </svg>
+          <p className="text-gray-600">Loading teams...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 md:space-y-6">
+      {/* Error Banner */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <svg
+              className="w-5 h-5 text-red-600 flex-shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <p className="text-sm text-red-800">{error}</p>
+          </div>
+          <button
+            onClick={() => setError(null)}
+            className="text-red-600 hover:text-red-800"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* View Only Banner */}
       {!canEditTeams && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center gap-3">
@@ -525,7 +572,6 @@ export default function TeamsPage() {
                 exceed {DEFAULT_TEAMS * MAX_MEMBERS_PER_TEAM}
               </li>
               <li>Existing participants are never reshuffled automatically</li>
-              <li>Admins can manually reassign participants between teams</li>
             </ul>
           </div>
         </div>

@@ -3,8 +3,201 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState, useEffect, ReactNode } from "react";
+import { useState, useEffect, ReactNode, useCallback } from "react";
 import { useAuth, getRoleDisplayName, UserRole } from "@/context/AuthContext";
+
+// Malaysian Time Clock Component
+function MalaysianClock({
+  isCollapsed,
+  isMobile,
+}: {
+  isCollapsed: boolean;
+  isMobile: boolean;
+}) {
+  const [time, setTime] = useState<Date | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  const getMalaysianTime = useCallback(() => {
+    const now = new Date();
+    // Convert to Malaysian time (UTC+8)
+    const malaysianTime = new Date(
+      now.toLocaleString("en-US", { timeZone: "Asia/Kuala_Lumpur" })
+    );
+    return malaysianTime;
+  }, []);
+
+  useEffect(() => {
+    // Set initial time
+    setTime(getMalaysianTime());
+    setIsVisible(true);
+
+    // Update every second
+    const interval = setInterval(() => {
+      setTime(getMalaysianTime());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [getMalaysianTime]);
+
+  if (!time) return null;
+
+  const hours = time.getHours();
+  const minutes = time.getMinutes();
+  const seconds = time.getSeconds();
+
+  const formattedTime = time.toLocaleTimeString("en-MY", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+
+  const formattedDate = time.toLocaleDateString("en-MY", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+  const dayOfWeek = time.toLocaleDateString("en-MY", { weekday: "long" });
+
+  // Calculate rotation for analog clock hands
+  const secondRotation = seconds * 6;
+  const minuteRotation = minutes * 6 + seconds * 0.1;
+  const hourRotation = (hours % 12) * 30 + minutes * 0.5;
+
+  // Collapsed view - mini analog clock
+  if (isCollapsed && !isMobile) {
+    return (
+      <div
+        className={`px-3 py-4 border-b border-gray-200 flex justify-center transition-all duration-500 ${
+          isVisible ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 shadow-inner">
+          {/* Clock face */}
+          <div className="absolute inset-1 rounded-full bg-white shadow-sm flex items-center justify-center">
+            {/* Hour markers */}
+            {[...Array(12)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-0.5 h-1 bg-gray-300 rounded-full"
+                style={{
+                  transform: `rotate(${i * 30}deg) translateY(-16px)`,
+                }}
+              />
+            ))}
+            {/* Hour hand */}
+            <div
+              className="absolute w-1 h-3 bg-indigo-600 rounded-full origin-bottom transition-transform"
+              style={{
+                transform: `rotate(${hourRotation}deg) translateY(-50%)`,
+                transformOrigin: "center bottom",
+              }}
+            />
+            {/* Minute hand */}
+            <div
+              className="absolute w-0.5 h-4 bg-purple-500 rounded-full origin-bottom transition-transform"
+              style={{
+                transform: `rotate(${minuteRotation}deg) translateY(-50%)`,
+                transformOrigin: "center bottom",
+              }}
+            />
+            {/* Second hand */}
+            <div
+              className="absolute w-px h-4 bg-red-400 rounded-full origin-bottom"
+              style={{
+                transform: `rotate(${secondRotation}deg) translateY(-50%)`,
+                transformOrigin: "center bottom",
+                transition: seconds === 0 ? "none" : "transform 0.1s linear",
+              }}
+            />
+            {/* Center dot */}
+            <div className="absolute w-1.5 h-1.5 bg-indigo-600 rounded-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Expanded view - full date/time display
+  return (
+    <div
+      className={`px-4 py-4 border-b border-gray-200 transition-all duration-500 ${
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"
+      }`}
+    >
+      <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-xl p-4 shadow-sm border border-indigo-100/50">
+        {/* Time Display */}
+        <div className="flex items-center justify-center gap-1 mb-2">
+          <div className="flex items-baseline gap-0.5">
+            {formattedTime
+              .split(":")
+              .slice(0, 2)
+              .map((part, index) => (
+                <span key={index} className="flex items-baseline">
+                  <span
+                    className="text-2xl font-bold bg-gradient-to-r from-gray-600 to-gray-600 bg-clip-text text-transparent tabular-nums"
+                    style={{
+                      animation: "pulse-subtle 2s ease-in-out infinite",
+                      animationDelay: `${index * 0.1}s`,
+                    }}
+                  >
+                    {part}
+                  </span>
+                  {index === 0 && (
+                    <span className="text-2xl font-bold text-gray-700 animate-pulse mx-0.5">
+                      :
+                    </span>
+                  )}
+                </span>
+              ))}
+          </div>
+          <div className="flex flex-col items-start ml-1">
+            <span
+              className="text-sm font-semibold text-gray-700 tabular-nums leading-tight"
+              style={{ animation: "fade-tick 1s ease-in-out infinite" }}
+            >
+              {String(seconds).padStart(2, "0")}
+            </span>
+            <span className="text-sm font-semibold text-gray-700 uppercase">
+              {formattedTime.slice(-2)}
+            </span>
+          </div>
+        </div>
+
+        {/* Date Display */}
+        <div className="text-center">
+          <p className="text-sm font-semibold text-gray-700">{dayOfWeek}</p>
+          <p className="text-xs text-gray-500 mt-0.5">{formattedDate}</p>
+        </div>
+      </div>
+
+      <style jsx>{`
+        @keyframes pulse-subtle {
+          0%,
+          100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.8;
+          }
+        }
+        @keyframes fade-tick {
+          0%,
+          100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.7;
+            transform: scale(0.98);
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
 
 interface NavItem {
   name: string;
@@ -235,6 +428,9 @@ export default function SideNav({ userRole = "committee" }: SideNavProps) {
             </svg>
           </button>
         </div>
+
+        {/* Malaysian Time Display */}
+        <MalaysianClock isCollapsed={isCollapsed} isMobile={isMobile} />
 
         {/* Navigation Items */}
         <nav

@@ -6,16 +6,21 @@ export type UserRole =
   | "committee";
 
 export type Department =
-  | "leadership"
-  | "logistics"
-  | "media"
-  | "registration"
-  | "protocol"
-  | "technical";
+  | "administrator"
+  | "pr_communication"
+  | "protocol_ceremonial"
+  | "fnb"
+  | "sponsorship_finance"
+  | "logistics_operations"
+  | "technical_it_support"
+  | "evaluation_research_documentation"
+  | "health_safety_welfare"
+  | "executive"
+  | "program_activities";
 
 export type UserStatus = "active" | "inactive";
 
-export type AttendanceStatus = "attend" | "absent" | "pending";
+export type AttendanceStatus = "attend" | "absent";
 
 export interface Database {
   public: {
@@ -23,7 +28,7 @@ export interface Database {
       // Committee members who login to the system
       users: {
         Row: {
-          id: string;
+          id: number;
           username: string;
           password: string;
           name: string;
@@ -34,7 +39,7 @@ export interface Database {
           updated_at: string;
         };
         Insert: {
-          id?: string;
+          id?: number;
           username: string;
           password: string;
           name: string;
@@ -45,7 +50,7 @@ export interface Database {
           updated_at?: string;
         };
         Update: {
-          id?: string;
+          id?: number;
           username?: string;
           password?: string;
           name?: string;
@@ -54,85 +59,144 @@ export interface Database {
           status?: UserStatus;
           updated_at?: string;
         };
+        Relationships: [];
       };
       // Groups for participant team assignment (Team A, B, C...)
       groups: {
         Row: {
-          id: string;
+          id: number;
           name: string;
           created_at: string;
         };
         Insert: {
-          id?: string;
+          id?: number;
           name: string;
           created_at?: string;
         };
         Update: {
-          id?: string;
+          id?: number;
           name?: string;
         };
+        Relationships: [];
       };
       // Event participants assigned to groups
       participants: {
         Row: {
-          id: string;
+          id: number;
           name: string;
-          group_id: string | null;
+          group_id: number | null;
           registered_at: string;
           created_at: string;
         };
         Insert: {
-          id?: string;
+          id?: number;
           name: string;
-          group_id?: string | null;
+          group_id?: number | null;
           registered_at?: string;
           created_at?: string;
         };
         Update: {
-          id?: string;
+          id?: number;
           name?: string;
-          group_id?: string | null;
+          group_id?: number | null;
           registered_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "participants_group_id_fkey";
+            columns: ["group_id"];
+            isOneToOne: false;
+            referencedRelation: "groups";
+            referencedColumns: ["id"];
+          }
+        ];
       };
-      // Committee attendance records
+      // Committee members master list
+      committee_members: {
+        Row: {
+          id: number;
+          name: string;
+          department: Department;
+          created_at: string;
+        };
+        Insert: {
+          id?: number;
+          name: string;
+          department: Department;
+          created_at?: string;
+        };
+        Update: {
+          id?: number;
+          name?: string;
+          department?: Department;
+        };
+        Relationships: [];
+      };
+      // Attendance table - tracks attendance status per date (synced with committee_members)
       attendance: {
         Row: {
-          id: string;
-          user_id: string;
+          id: number;
+          committee_member_id: number;
+          attendance_date: string;
           status: AttendanceStatus;
           photo_url: string | null;
           latitude: number | null;
           longitude: number | null;
           accuracy: number | null;
           address: string | null;
-          timestamp: string;
+          check_in_time: string | null;
           created_at: string;
+          updated_at: string;
         };
         Insert: {
-          id?: string;
-          user_id: string;
+          id?: number;
+          committee_member_id: number;
+          attendance_date?: string;
           status?: AttendanceStatus;
           photo_url?: string | null;
           latitude?: number | null;
           longitude?: number | null;
           accuracy?: number | null;
           address?: string | null;
-          timestamp?: string;
+          check_in_time?: string | null;
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
-          id?: string;
-          user_id?: string;
+          id?: number;
+          committee_member_id?: number;
+          attendance_date?: string;
           status?: AttendanceStatus;
           photo_url?: string | null;
           latitude?: number | null;
           longitude?: number | null;
           accuracy?: number | null;
           address?: string | null;
-          timestamp?: string;
+          check_in_time?: string | null;
+          updated_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "attendance_committee_member_id_fkey";
+            columns: ["committee_member_id"];
+            isOneToOne: false;
+            referencedRelation: "committee_members";
+            referencedColumns: ["id"];
+          }
+        ];
       };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
     };
   };
 }
@@ -141,6 +205,8 @@ export interface Database {
 export type User = Database["public"]["Tables"]["users"]["Row"];
 export type Group = Database["public"]["Tables"]["groups"]["Row"];
 export type Participant = Database["public"]["Tables"]["participants"]["Row"];
+export type CommitteeMember =
+  Database["public"]["Tables"]["committee_members"]["Row"];
 export type Attendance = Database["public"]["Tables"]["attendance"]["Row"];
 
 export type InsertUser = Database["public"]["Tables"]["users"]["Insert"];

@@ -8,6 +8,9 @@ import {
   ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import bcrypt from "bcryptjs";
+import { supabase } from "@/lib/supabase";
+import type { Department } from "@/types/database.types";
 
 export type UserRole =
   | "admin"
@@ -17,10 +20,10 @@ export type UserRole =
   | "committee";
 
 interface User {
-  id: string;
+  id: number;
   username: string;
   name: string;
-  email: string;
+  department: Department;
   role: UserRole;
 }
 
@@ -87,50 +90,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock users for demonstration - replace with real API later
-const MOCK_USERS = [
-  {
-    id: "1",
-    username: "admin",
-    password: "admin123",
-    name: "Super Admin",
-    email: "admin@funlish.com",
-    role: "admin" as UserRole,
-  },
-  {
-    id: "2",
-    username: "chairperson",
-    password: "chair123",
-    name: "Ahmad Chairperson",
-    email: "chairperson@funlish.com",
-    role: "chairperson" as UserRole,
-  },
-  {
-    id: "3",
-    username: "protocol",
-    password: "protocol123",
-    name: "Siti Protocol",
-    email: "protocol@funlish.com",
-    role: "protocol" as UserRole,
-  },
-  {
-    id: "4",
-    username: "regcoord",
-    password: "regcoord123",
-    name: "Lee Registration",
-    email: "registration@funlish.com",
-    role: "registration_coordinator" as UserRole,
-  },
-  {
-    id: "5",
-    username: "committee",
-    password: "committee123",
-    name: "Priya Committee",
-    email: "committee@funlish.com",
-    role: "committee" as UserRole,
-  },
-];
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -140,7 +99,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const storedUser = localStorage.getItem("funlish_user");
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch {
+        localStorage.removeItem("funlish_user");
+      }
     }
     setIsLoading(false);
   }, []);
@@ -149,21 +112,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     username: string,
     password: string
   ): Promise<boolean> => {
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      // Query Supabase for user with matching username
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, username, password, name, department, role, status")
+        .eq("username", username)
+        .eq("status", "active")
+        .single();
 
-    const foundUser = MOCK_USERS.find(
-      (u) => u.username === username && u.password === password
-    );
+      if (error || !data) {
+        console.error("Login error:", error?.message || "User not found");
+        return false;
+      }
 
-    if (foundUser) {
-      const { password: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem("funlish_user", JSON.stringify(userWithoutPassword));
+      // Verify password using bcrypt
+      const isValidPassword = await bcrypt.compare(password, data.password);
+      if (!isValidPassword) {
+        console.error("Login error: Invalid password");
+        return false;
+      }
+
+      // Create user object without password
+      const loggedInUser: User = {
+        id: data.id,
+        username: data.username,
+        name: data.name,
+        department: data.department,
+        role: data.role as UserRole,
+      };
+
+      setUser(loggedInUser);
+      localStorage.setItem("funlish_user", JSON.stringify(loggedInUser));
       return true;
+    } catch (err) {
+      console.error("Login error:", err);
+      return false;
     }
-
-    return false;
   };
 
   const logout = () => {

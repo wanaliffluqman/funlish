@@ -1,5 +1,6 @@
 -- =============================================
--- FUNLISH Database Schema
+-- FUNLISH Database Schema v2
+-- IMPROVED: Added attendance_date for daily tracking
 -- Run this in Supabase SQL Editor
 -- =============================================
 
@@ -32,7 +33,9 @@ CREATE TABLE users (
         'evaluation_research_documentation',
         'health_safety_welfare',
         'executive',
-        'program_activities'
+        'program_activities',
+        'media',
+        'documentation'
     )),
     role VARCHAR(50) DEFAULT 'committee' CHECK (role IN ('admin', 'chairperson', 'protocol', 'registration_coordinator', 'committee')),
     status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
@@ -61,7 +64,7 @@ CREATE TABLE participants (
 );
 
 -- =============================================
--- 4. COMMITTEE MEMBERS TABLE (Master list of 40 committee members)
+-- 4. COMMITTEE MEMBERS TABLE (Master list of committee members)
 -- =============================================
 CREATE TABLE committee_members (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -85,11 +88,13 @@ CREATE TABLE committee_members (
 );
 
 -- =============================================
--- 5. ATTENDANCE TABLE (Tracks attendance status - synced with committee_members)
+-- 5. ATTENDANCE TABLE (Tracks attendance per DATE - not just one record)
+-- NEW: attendance_date field for daily tracking
 -- =============================================
 CREATE TABLE attendance (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     committee_member_id UUID NOT NULL REFERENCES committee_members(id) ON DELETE CASCADE,
+    attendance_date DATE NOT NULL DEFAULT CURRENT_DATE,
     status VARCHAR(20) DEFAULT 'absent' CHECK (status IN ('attend', 'absent')),
     photo_url TEXT,
     latitude DECIMAL(10, 8),
@@ -99,7 +104,8 @@ CREATE TABLE attendance (
     check_in_time TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(committee_member_id)  -- One attendance record per committee member
+    -- One attendance record per committee member PER DATE
+    UNIQUE(committee_member_id, attendance_date)
 );
 
 -- =============================================
@@ -110,6 +116,7 @@ CREATE INDEX idx_participants_group ON participants(group_id);
 CREATE INDEX idx_committee_members_department ON committee_members(department);
 CREATE INDEX idx_attendance_committee_member ON attendance(committee_member_id);
 CREATE INDEX idx_attendance_status ON attendance(status);
+CREATE INDEX idx_attendance_date ON attendance(attendance_date);
 
 -- =============================================
 -- AUTO-UPDATE updated_at TRIGGER
@@ -133,21 +140,66 @@ CREATE TRIGGER update_attendance_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 -- =============================================
--- FUNCTION: Auto-create attendance record when committee member is added
+-- FUNCTION: Create attendance records for all members for a specific date
+-- Call this function to initialize attendance for today or any date
 -- =============================================
-CREATE OR REPLACE FUNCTION create_attendance_for_member()
-RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION create_daily_attendance(target_date DATE DEFAULT CURRENT_DATE)
+RETURNS void AS $$
 BEGIN
-    INSERT INTO attendance (committee_member_id, status)
-    VALUES (NEW.id, 'absent');
-    RETURN NEW;
+    INSERT INTO attendance (committee_member_id, attendance_date, status)
+    SELECT cm.id, target_date, 'absent'
+    FROM committee_members cm
+    WHERE NOT EXISTS (
+        SELECT 1 FROM attendance a 
+        WHERE a.committee_member_id = cm.id 
+        AND a.attendance_date = target_date
+    );
 END;
 $$ language 'plpgsql';
 
-CREATE TRIGGER auto_create_attendance
-    AFTER INSERT ON committee_members
-    FOR EACH ROW
-    EXECUTE FUNCTION create_attendance_for_member();
+-- =============================================
+-- FUNCTION: Get attendance for a specific date (with member details)
+-- =============================================
+CREATE OR REPLACE FUNCTION get_attendance_for_date(target_date DATE DEFAULT CURRENT_DATE)
+RETURNS TABLE (
+    id UUID,
+    committee_member_id UUID,
+    name VARCHAR(100),
+    department VARCHAR(100),
+    attendance_date DATE,
+    status VARCHAR(20),
+    photo_url TEXT,
+    latitude DECIMAL(10, 8),
+    longitude DECIMAL(11, 8),
+    accuracy DECIMAL(10, 2),
+    address TEXT,
+    check_in_time TIMESTAMP WITH TIME ZONE
+) AS $$
+BEGIN
+    -- First ensure records exist for this date
+    PERFORM create_daily_attendance(target_date);
+    
+    -- Return the attendance records with member info
+    RETURN QUERY
+    SELECT 
+        a.id,
+        a.committee_member_id,
+        cm.name,
+        cm.department,
+        a.attendance_date,
+        a.status,
+        a.photo_url,
+        a.latitude,
+        a.longitude,
+        a.accuracy,
+        a.address,
+        a.check_in_time
+    FROM attendance a
+    JOIN committee_members cm ON a.committee_member_id = cm.id
+    WHERE a.attendance_date = target_date
+    ORDER BY cm.name;
+END;
+$$ language 'plpgsql';
 
 -- =============================================
 -- ROW LEVEL SECURITY (RLS)
@@ -200,7 +252,6 @@ INSERT INTO users (username, password, name, department, role, status) VALUES
 
 -- =============================================
 -- COMMITTEE MEMBERS DATA (40 Members)
--- Attendance records auto-created by trigger
 -- =============================================
 INSERT INTO committee_members (name, department) VALUES
     ('Ehara Tomoka', 'protocol_ceremonial'),
@@ -243,3 +294,6 @@ INSERT INTO committee_members (name, department) VALUES
     ('Nur Shuhada Binti Abdullah', 'documentation'),
     ('Nur Izzah Binti Nurzarizi', 'fnb'),
     ('Muhammad Haziq Hakimi Bin Mohd Khairul', 'sponsorship_finance');
+
+-- Create attendance records for today
+SELECT create_daily_attendance(CURRENT_DATE);
