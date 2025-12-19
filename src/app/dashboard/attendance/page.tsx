@@ -392,7 +392,9 @@ export default function AttendancePage() {
                   <p className="text-xs sm:text-sm font-semibold text-red-800">
                     Location Unavailable
                   </p>
-                  <p className="text-[10px] sm:text-xs text-red-600 truncate">{locationError}</p>
+                  <p className="text-[10px] sm:text-xs text-red-600 truncate">
+                    {locationError}
+                  </p>
                 </div>
               </div>
               <button
@@ -455,7 +457,9 @@ export default function AttendancePage() {
         <div className="bg-white rounded-xl p-3 sm:p-4 md:p-6 shadow-sm border border-gray-100 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 mb-1">Attend</p>
+              <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 mb-1">
+                Attend
+              </p>
               <p className="text-xl sm:text-2xl md:text-3xl font-bold text-green-600">
                 {stats.attend}
               </p>
@@ -481,7 +485,9 @@ export default function AttendancePage() {
         <div className="bg-white rounded-xl p-3 sm:p-4 md:p-6 shadow-sm border border-gray-100 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 mb-1">Absent</p>
+              <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 mb-1">
+                Absent
+              </p>
               <p className="text-xl sm:text-2xl md:text-3xl font-bold text-red-600">
                 {stats.absent}
               </p>
@@ -507,7 +513,9 @@ export default function AttendancePage() {
         <div className="bg-white rounded-xl p-3 sm:p-4 md:p-6 shadow-sm border border-gray-100 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 mb-1">Pending</p>
+              <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 mb-1">
+                Pending
+              </p>
               <p className="text-xl sm:text-2xl md:text-3xl font-bold text-yellow-600">
                 {stats.pending}
               </p>
@@ -776,14 +784,20 @@ export default function AttendancePage() {
                     ref={videoRef}
                     autoPlay
                     playsInline
-                    className={`w-full h-full object-cover ${facingMode === "user" ? "scale-x-[-1]" : ""}`}
+                    className={`w-full h-full object-cover ${
+                      facingMode === "user" ? "scale-x-[-1]" : ""
+                    }`}
                   />
                   {/* Switch Camera Button - visible on mobile */}
                   {!viewMode && (
                     <button
                       onClick={switchCamera}
                       className="absolute top-3 right-3 p-3 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors backdrop-blur-sm"
-                      title={facingMode === "user" ? "Switch to back camera" : "Switch to front camera"}
+                      title={
+                        facingMode === "user"
+                          ? "Switch to back camera"
+                          : "Switch to front camera"
+                      }
                     >
                       <svg
                         className="w-6 h-6"
@@ -805,7 +819,9 @@ export default function AttendancePage() {
                 <img
                   src={capturedPhoto}
                   alt="Captured"
-                  className={`w-full h-full object-cover ${facingMode === "user" ? "scale-x-[-1]" : ""}`}
+                  className={`w-full h-full object-cover ${
+                    facingMode === "user" ? "scale-x-[-1]" : ""
+                  }`}
                 />
               )}
               <canvas ref={canvasRef} className="hidden" />

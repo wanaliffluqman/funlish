@@ -38,12 +38,12 @@ export default function SideNav({ userRole = "committee" }: SideNavProps) {
   // Lock body scroll when mobile menu is open
   useEffect(() => {
     if (isMobile && !isCollapsed) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     }
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     };
   }, [isMobile, isCollapsed]);
 
@@ -237,7 +237,10 @@ export default function SideNav({ userRole = "committee" }: SideNavProps) {
         </div>
 
         {/* Navigation Items */}
-        <nav className="p-3 sm:p-4 space-y-1 sm:space-y-2 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+        <nav
+          className="p-3 sm:p-4 space-y-1 sm:space-y-2 overflow-y-auto"
+          style={{ maxHeight: "calc(100vh - 200px)" }}
+        >
           {allNavItems.map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -311,7 +314,9 @@ export default function SideNav({ userRole = "committee" }: SideNavProps) {
                 d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
               />
             </svg>
-            {(!isCollapsed || isMobile) && <span className="font-medium">Logout</span>}
+            {(!isCollapsed || isMobile) && (
+              <span className="font-medium">Logout</span>
+            )}
           </button>
         </div>
       </aside>

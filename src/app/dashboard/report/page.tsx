@@ -81,6 +81,10 @@ export default function ReportPage() {
           .print-break {
             page-break-after: always;
           }
+          .print-break-before {
+            page-break-before: always;
+            break-before: page;
+          }
           @page {
             margin: 0.5cm;
             size: A4;
@@ -174,17 +178,22 @@ export default function ReportPage() {
           </div>
 
           {/* Print-Only Card Grid - Shows full details for each committee member */}
+          {/* 6 cards per page: 2 columns x 3 rows */}
           <div className="hidden print:block">
-            <div className="grid grid-cols-2 gap-4">
-              {filteredData.map((record, index) => (
-                <div
-                  key={record.id}
-                  className="print-card border-2 border-gray-300 rounded-lg p-3 bg-white"
-                >
+            {Array.from({ length: Math.ceil(filteredData.length / 6) }).map((_, pageIndex) => (
+              <div key={pageIndex} className={pageIndex > 0 ? "print-break-before" : ""}>
+                <div className="grid grid-cols-2 gap-4" style={{ height: "calc(100vh - 120px)" }}>
+                  {filteredData.slice(pageIndex * 6, (pageIndex + 1) * 6).map((record, index) => (
+                    <div
+                      key={record.id}
+                      className="print-card border-2 border-gray-300 rounded-lg p-3 bg-white"
+                      style={{ height: "calc((100vh - 160px) / 3)" }}
+                    >
                   {/* Card Header */}
                   <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-2">
+                    {/* Card Number */}
                     <span className="text-xs font-bold text-gray-500">
-                      #{index + 1}
+                      #{pageIndex * 6 + index + 1}
                     </span>
                     <span
                       className={`px-2 py-0.5 rounded text-xs font-bold ${
@@ -294,7 +303,9 @@ export default function ReportPage() {
                   )}
                 </div>
               ))}
-            </div>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Screen-Only Table View */}
