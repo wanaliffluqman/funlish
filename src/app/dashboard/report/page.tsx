@@ -86,8 +86,16 @@ export default function ReportPage() {
             break-before: page;
           }
           @page {
-            margin: 0.5cm;
+            margin: 1cm;
+            margin-top: 0.5cm;
+            margin-bottom: 0.5cm;
             size: A4;
+          }
+          /* Remove browser header/footer */
+          html,
+          body {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
         }
       `}</style>
@@ -165,147 +173,97 @@ export default function ReportPage() {
             <h2 className="text-xl font-semibold text-gray-700 mt-1">
               Committee Attendance Report
             </h2>
-            <p className="text-sm text-gray-600 mt-2">
-              Generated on:{" "}
-              {new Date().toLocaleDateString("en-MY", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
           </div>
 
           {/* Print-Only Card Grid - Shows full details for each committee member */}
           {/* 6 cards per page: 2 columns x 3 rows */}
           <div className="hidden print:block">
-            {Array.from({ length: Math.ceil(filteredData.length / 6) }).map((_, pageIndex) => (
-              <div key={pageIndex} className={pageIndex > 0 ? "print-break-before" : ""}>
-                <div className="grid grid-cols-2 gap-4" style={{ height: "calc(100vh - 120px)" }}>
-                  {filteredData.slice(pageIndex * 6, (pageIndex + 1) * 6).map((record, index) => (
-                    <div
-                      key={record.id}
-                      className="print-card border-2 border-gray-300 rounded-lg p-3 bg-white"
-                      style={{ height: "calc((100vh - 160px) / 3)" }}
-                    >
-                  {/* Card Header */}
-                  <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-2">
-                    {/* Card Number */}
-                    <span className="text-xs font-bold text-gray-500">
-                      #{pageIndex * 6 + index + 1}
-                    </span>
-                    <span
-                      className={`px-2 py-0.5 rounded text-xs font-bold ${
-                        record.status === "attend"
-                          ? "bg-green-100 text-green-700 border border-green-300"
-                          : record.status === "absent"
-                          ? "bg-red-100 text-red-700 border border-red-300"
-                          : "bg-yellow-100 text-yellow-700 border border-yellow-300"
-                      }`}
-                    >
-                      {record.status.toUpperCase()}
-                    </span>
-                  </div>
+            {Array.from({ length: Math.ceil(filteredData.length / 6) }).map(
+              (_, pageIndex) => (
+                <div
+                  key={pageIndex}
+                  className={pageIndex > 0 ? "print-break-before" : ""}
+                >
+                  <div
+                    className="grid grid-cols-2 gap-4"
+                    style={{ height: "calc(100vh - 120px)" }}
+                  >
+                    {filteredData
+                      .slice(pageIndex * 6, (pageIndex + 1) * 6)
+                      .map((record, index) => (
+                        <div
+                          key={record.id}
+                          className="print-card border-2 border-gray-300 rounded-lg p-3 bg-white"
+                          style={{ height: "calc((100vh - 160px) / 3)" }}
+                        >
+                          {/* Card Header */}
+                          <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-2">
+                            {/* Card Number */}
+                            <span className="text-xs font-bold text-gray-500">
+                              #{pageIndex * 6 + index + 1}
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs font-bold ${
+                                record.status === "attend"
+                                  ? "bg-green-100 text-green-700 border border-green-300"
+                                  : record.status === "absent"
+                                  ? "bg-red-100 text-red-700 border border-red-300"
+                                  : "bg-yellow-100 text-yellow-700 border border-yellow-300"
+                              }`}
+                            >
+                              {record.status.toUpperCase()}
+                            </span>
+                          </div>
 
-                  {/* Photo */}
-                  <div className="flex justify-center mb-3">
-                    {record.photoUrl ? (
-                      <div className="w-32 h-32 border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-100">
-                        <img
-                          src={record.photoUrl}
-                          alt={`${record.name} verification photo`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
-                        <div className="text-center">
-                          <svg
-                            className="w-10 h-10 mx-auto text-gray-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                            />
-                          </svg>
-                          <p className="text-xs text-gray-400 mt-1">No Photo</p>
+                          {/* Photo */}
+                          <div className="flex justify-center mb-3">
+                            {record.photoUrl ? (
+                              <div className="w-32 h-32 border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-100">
+                                <img
+                                  src={record.photoUrl}
+                                  alt={`${record.name} verification photo`}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+                                <div className="text-center">
+                                  <svg
+                                    className="w-10 h-10 mx-auto text-gray-400"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                    />
+                                  </svg>
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    No Photo
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Details */}
+                          <div className="space-y-1 text-center">
+                            <h3 className="font-bold text-gray-900 text-base">
+                              {record.name}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {record.role}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      ))}
                   </div>
-
-                  {/* Details */}
-                  <div className="space-y-1 text-center">
-                    <h3 className="font-bold text-gray-900 text-sm">
-                      {record.name}
-                    </h3>
-                    <p className="text-xs text-gray-600">{record.role}</p>
-                  </div>
-
-                  {/* Check-in Info */}
-                  {record.timestamp && (
-                    <div className="mt-2 pt-2 border-t border-gray-200">
-                      <div className="flex items-center justify-center gap-1 text-xs text-gray-600">
-                        <svg
-                          className="w-3 h-3"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                        <span>
-                          {formatDateTime(record.timestamp).date}{" "}
-                          {formatDateTime(record.timestamp).time}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Location Info */}
-                  {record.location && (
-                    <div className="mt-1">
-                      <div className="flex items-center justify-center gap-1 text-xs text-green-700">
-                        <svg
-                          className="w-3 h-3 flex-shrink-0"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                          />
-                        </svg>
-                        <span className="truncate">
-                          {record.location.address}
-                        </span>
-                      </div>
-                      <p className="text-center text-xs text-gray-400 mt-0.5">
-                        ({record.location.latitude.toFixed(4)},{" "}
-                        {record.location.longitude.toFixed(4)}) ±{" "}
-                        {record.location.accuracy}m
-                      </p>
-                    </div>
-                  )}
                 </div>
-              ))}
-                </div>
-              </div>
-            ))}
+              )
+            )}
           </div>
 
           {/* Screen-Only Table View */}
@@ -337,7 +295,7 @@ export default function ReportPage() {
                       Status
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                      Check-in Time
+                      Attend Time
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
                       Location
