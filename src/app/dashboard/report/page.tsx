@@ -560,23 +560,6 @@ export default function ReportPage() {
               ))}
             </div>
           </div>
-
-          {/* Summary Footer for Print */}
-          <div className="mt-6 pt-4 border-t border-gray-200 hidden print:block">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-sm text-gray-600">
-                  Total Records: {filteredData.length}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-600">
-                  Prepared by: _______________________
-                </p>
-                <p className="text-xs text-gray-400 mt-1">Signature & Date</p>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* No Records Message */}
