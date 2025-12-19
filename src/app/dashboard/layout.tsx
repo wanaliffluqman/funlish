@@ -36,8 +36,8 @@ export default function DashboardLayout({
     <AttendanceProvider>
       <div className="flex min-h-screen bg-gray-50">
         <SideNav userRole={user.role} />
-        <main className="flex-1 ml-0 md:ml-64 transition-all duration-300">
-          <div className="p-4 sm:p-6 md:p-8">{children}</div>
+        <main className="flex-1 ml-0 md:ml-64 transition-all duration-300 overflow-x-hidden">
+          <div className="p-2 sm:p-4 md:p-6 lg:p-8 max-w-full">{children}</div>
         </main>
       </div>
     </AttendanceProvider>

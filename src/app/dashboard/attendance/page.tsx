@@ -266,7 +266,7 @@ export default function AttendancePage() {
   }, []);
 
   return (
-    <div className="p-4 md:p-6 lg:p-8">
+    <div className="space-y-4 md:space-y-6 max-w-full overflow-x-hidden">
       {/* View Only Banner */}
       {!canEditAttendance && (
         <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center gap-3">
@@ -298,7 +298,7 @@ export default function AttendancePage() {
 
       {/* Location Status Banner */}
       <div
-        className={`mb-4 rounded-xl p-4 border ${
+        className={`mb-4 rounded-xl p-3 sm:p-4 border ${
           isLoadingLocation
             ? "bg-blue-50 border-blue-200"
             : currentLocation
@@ -306,88 +306,94 @@ export default function AttendancePage() {
             : "bg-red-50 border-red-200"
         }`}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
           {isLoadingLocation ? (
             <>
-              <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
-              <div>
-                <p className="text-sm font-semibold text-blue-800">
-                  Detecting location...
-                </p>
-                <p className="text-xs text-blue-600">
-                  Please wait while we get your GPS coordinates
-                </p>
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
+                <div>
+                  <p className="text-xs sm:text-sm font-semibold text-blue-800">
+                    Detecting location...
+                  </p>
+                  <p className="text-[10px] sm:text-xs text-blue-600">
+                    Please wait while we get your GPS coordinates
+                  </p>
+                </div>
               </div>
             </>
           ) : currentLocation ? (
             <>
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <svg
-                  className="w-5 h-5 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-green-800 flex items-center gap-2">
-                  📍 Location Active
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-200 text-green-800">
-                    ± {currentLocation.accuracy}m accuracy
-                  </span>
-                </p>
-                <p className="text-xs text-green-700 truncate">
-                  {currentLocation.address}
-                </p>
-                <p className="text-xs text-green-600 mt-0.5">
-                  Lat: {currentLocation.latitude.toFixed(6)}, Lng:{" "}
-                  {currentLocation.longitude.toFixed(6)}
-                </p>
+              <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg
+                    className="w-4 h-4 sm:w-5 sm:h-5 text-green-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm font-semibold text-green-800 flex flex-wrap items-center gap-1 sm:gap-2">
+                    <span>📍 Location Active</span>
+                    <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-green-200 text-green-800">
+                      ± {currentLocation.accuracy}m accuracy
+                    </span>
+                  </p>
+                  <p className="text-[10px] sm:text-xs text-green-700 truncate">
+                    {currentLocation.address}
+                  </p>
+                  <p className="text-[10px] sm:text-xs text-green-600 mt-0.5 truncate">
+                    Lat: {currentLocation.latitude.toFixed(6)}, Lng:{" "}
+                    {currentLocation.longitude.toFixed(6)}
+                  </p>
+                </div>
               </div>
               <a
                 href={`https://www.google.com/maps?q=${currentLocation.latitude},${currentLocation.longitude}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors flex-shrink-0"
+                className="px-3 py-1.5 bg-green-600 text-white text-[10px] sm:text-xs font-medium rounded-lg hover:bg-green-700 transition-colors flex-shrink-0 text-center w-full sm:w-auto"
               >
                 View Map
               </a>
             </>
           ) : (
             <>
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <svg
-                  className="w-5 h-5 text-red-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-                  />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-red-800">
-                  Location Unavailable
-                </p>
-                <p className="text-xs text-red-600">{locationError}</p>
+              <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg
+                    className="w-4 h-4 sm:w-5 sm:h-5 text-red-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                    />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm font-semibold text-red-800">
+                    Location Unavailable
+                  </p>
+                  <p className="text-[10px] sm:text-xs text-red-600 truncate">{locationError}</p>
+                </div>
               </div>
               <button
                 onClick={() => {
@@ -395,7 +401,7 @@ export default function AttendancePage() {
                   setLocationError(null);
                   window.location.reload();
                 }}
-                className="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors flex-shrink-0"
+                className="px-3 py-1.5 bg-red-600 text-white text-[10px] sm:text-xs font-medium rounded-lg hover:bg-red-700 transition-colors flex-shrink-0 w-full sm:w-auto text-center"
               >
                 Retry
               </button>
@@ -405,11 +411,11 @@ export default function AttendancePage() {
       </div>
 
       {/* Header */}
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+      <div className="mb-4 sm:mb-6 md:mb-8">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">
           Committee Attendance
         </h1>
-        <p className="text-sm md:text-base text-gray-600">
+        <p className="text-xs sm:text-sm md:text-base text-gray-600">
           {canEditAttendance
             ? "Manage and verify committee member attendance with photo verification"
             : "View committee member attendance records"}
@@ -417,20 +423,20 @@ export default function AttendancePage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
-        <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs md:text-sm text-gray-600 mb-1">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-6 md:mb-8 overflow-hidden">
+        <div className="bg-white rounded-xl p-3 sm:p-4 md:p-6 shadow-sm border border-gray-100 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 mb-1 truncate">
                 Total Members
               </p>
-              <p className="text-2xl md:text-3xl font-bold text-gray-900">
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
                 {stats.total}
               </p>
             </div>
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
               <svg
-                className="w-5 h-5 md:w-6 md:h-6 text-indigo-600"
+                className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-indigo-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -446,17 +452,17 @@ export default function AttendancePage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs md:text-sm text-gray-600 mb-1">Attend</p>
-              <p className="text-2xl md:text-3xl font-bold text-green-600">
+        <div className="bg-white rounded-xl p-3 sm:p-4 md:p-6 shadow-sm border border-gray-100 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 mb-1">Attend</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-green-600">
                 {stats.attend}
               </p>
             </div>
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
               <svg
-                className="w-5 h-5 md:w-6 md:h-6 text-green-600"
+                className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-green-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -472,17 +478,17 @@ export default function AttendancePage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs md:text-sm text-gray-600 mb-1">Absent</p>
-              <p className="text-2xl md:text-3xl font-bold text-red-600">
+        <div className="bg-white rounded-xl p-3 sm:p-4 md:p-6 shadow-sm border border-gray-100 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 mb-1">Absent</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-red-600">
                 {stats.absent}
               </p>
             </div>
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-red-100 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
               <svg
-                className="w-5 h-5 md:w-6 md:h-6 text-red-600"
+                className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-red-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -498,17 +504,17 @@ export default function AttendancePage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs md:text-sm text-gray-600 mb-1">Pending</p>
-              <p className="text-2xl md:text-3xl font-bold text-yellow-600">
+        <div className="bg-white rounded-xl p-3 sm:p-4 md:p-6 shadow-sm border border-gray-100 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 mb-1">Pending</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-yellow-600">
                 {stats.pending}
               </p>
             </div>
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
               <svg
-                className="w-5 h-5 md:w-6 md:h-6 text-yellow-600"
+                className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-yellow-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -526,9 +532,9 @@ export default function AttendancePage() {
       </div>
 
       {/* Search and Filter Controls */}
-      <div className="flex flex-col md:flex-row gap-3 md:gap-6 mb-6 md:mb-8 items-start md:items-end">
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-900 mb-1">
+      <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-6 md:mb-8">
+        <div className="flex-1 w-full">
+          <label className="block text-xs sm:text-sm font-medium text-gray-900 mb-1">
             Search
           </label>
           <input
@@ -536,17 +542,17 @@ export default function AttendancePage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search by name or role..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
+            className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-1">
+        <div className="w-full sm:w-auto sm:min-w-[120px]">
+          <label className="block text-xs sm:text-sm font-medium text-gray-900 mb-1">
             Status
           </label>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
+            className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
           >
             <option value="all" className="text-gray-900">
               All
