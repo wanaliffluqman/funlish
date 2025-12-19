@@ -356,18 +356,6 @@ export default function ReportPage() {
                   Committee Attendance Report
                 </h2>
               </div>
-
-              {/* Date */}
-              <div style={{ marginTop: "40px" }}>
-                <p style={{ fontSize: "18px", color: "#4b5563" }}>
-                  {new Date(selectedDate).toLocaleDateString("en-MY", {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </p>
-              </div>
             </div>
           </div>
 

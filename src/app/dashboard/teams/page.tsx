@@ -65,6 +65,14 @@ export default function TeamsPage() {
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+  const [deleteParticipantConfirm, setDeleteParticipantConfirm] = useState<{
+    participant: Participant;
+    teamId: number;
+  } | null>(null);
+  const [deleteTeamConfirm, setDeleteTeamConfirm] = useState<Team | null>(null);
+  const [isDeletingParticipant, setIsDeletingParticipant] = useState(false);
+  const [isDeletingTeam, setIsDeletingTeam] = useState(false);
 
   // Fetch teams and participants from Supabase
   const fetchTeamsAndParticipants = useCallback(async () => {
@@ -130,6 +138,81 @@ export default function TeamsPage() {
   ) => {
     setSelectedParticipant({ participant, fromTeamId });
     setShowMoveModal(true);
+    setOpenDropdownId(null);
+  };
+
+  const handleDeleteParticipant = async () => {
+    if (!deleteParticipantConfirm || isDeletingParticipant) return;
+
+    setIsDeletingParticipant(true);
+
+    try {
+      const { error } = await supabase
+        .from("participants")
+        .delete()
+        .eq("id", deleteParticipantConfirm.participant.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setTeams((prevTeams) =>
+        prevTeams.map((team) =>
+          team.id === deleteParticipantConfirm.teamId
+            ? {
+                ...team,
+                members: team.members.filter(
+                  (m) => m.id !== deleteParticipantConfirm.participant.id
+                ),
+              }
+            : team
+        )
+      );
+
+      setTotalParticipants((prev) => prev - 1);
+    } catch (err) {
+      console.error("Error deleting participant:", err);
+      setError("Failed to delete participant");
+    } finally {
+      setDeleteParticipantConfirm(null);
+      setIsDeletingParticipant(false);
+    }
+  };
+
+  const handleDeleteTeam = async () => {
+    if (!deleteTeamConfirm || isDeletingTeam) return;
+
+    setIsDeletingTeam(true);
+
+    try {
+      // First, delete all participants in this team
+      const { error: participantsError } = await supabase
+        .from("participants")
+        .delete()
+        .eq("group_id", deleteTeamConfirm.id);
+
+      if (participantsError) throw participantsError;
+
+      // Then delete the team/group
+      const { error: groupError } = await supabase
+        .from("groups")
+        .delete()
+        .eq("id", deleteTeamConfirm.id);
+
+      if (groupError) throw groupError;
+
+      // Update local state
+      const deletedMembersCount = deleteTeamConfirm.members.length;
+      setTeams((prevTeams) =>
+        prevTeams.filter((team) => team.id !== deleteTeamConfirm.id)
+      );
+      setTotalParticipants((prev) => prev - deletedMembersCount);
+    } catch (err) {
+      console.error("Error deleting team:", err);
+      setError("Failed to delete team");
+    } finally {
+      setDeleteTeamConfirm(null);
+      setIsDeletingTeam(false);
+    }
   };
 
   const confirmMove = async (toTeamId: number) => {
@@ -689,10 +772,33 @@ export default function TeamsPage() {
             <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-3 md:p-4">
               <div className="flex items-center justify-between text-white">
                 <h3 className="text-base md:text-lg font-bold">{team.name}</h3>
-                <div className="bg-white/20 backdrop-blur-sm px-2 md:px-3 py-1 rounded-full">
-                  <span className="text-xs md:text-sm font-semibold">
-                    {team.members.length}/{MAX_MEMBERS_PER_TEAM}
-                  </span>
+                <div className="flex items-center gap-2">
+                  <div className="bg-white/20 backdrop-blur-sm px-2 md:px-3 py-1 rounded-full">
+                    <span className="text-xs md:text-sm font-semibold">
+                      {team.members.length}/{MAX_MEMBERS_PER_TEAM}
+                    </span>
+                  </div>
+                  {canEditTeams && (
+                    <button
+                      onClick={() => setDeleteTeamConfirm(team)}
+                      className="group/delete p-1.5 md:p-2 bg-white/10 hover:bg-red-500 border border-white/20 hover:border-red-500 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                      title="Delete team"
+                    >
+                      <svg
+                        className="w-4 h-4 opacity-70 group-hover/delete:opacity-100 transition-opacity"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -734,25 +840,87 @@ export default function TeamsPage() {
                         </div>
                       </div>
                       {canEditTeams && (
-                        <button
-                          onClick={() => handleMoveParticipant(member, team.id)}
-                          className="ml-2 p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
-                          title="Move to another team"
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                        <div className="relative ml-2 flex-shrink-0">
+                          <button
+                            onClick={() =>
+                              setOpenDropdownId(
+                                openDropdownId === member.id ? null : member.id
+                              )
+                            }
+                            className="p-2 text-gray-900 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all"
+                            title="Actions"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                            />
-                          </svg>
-                        </button>
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                              />
+                            </svg>
+                          </button>
+                          {openDropdownId === member.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-10"
+                                onClick={() => setOpenDropdownId(null)}
+                              />
+                              <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                                <button
+                                  onClick={() =>
+                                    handleMoveParticipant(member, team.id)
+                                  }
+                                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-2"
+                                >
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                                    />
+                                  </svg>
+                                  Move
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setDeleteParticipantConfirm({
+                                      participant: member,
+                                      teamId: team.id,
+                                    });
+                                    setOpenDropdownId(null);
+                                  }}
+                                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                >
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                    />
+                                  </svg>
+                                  Delete
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       )}
                     </div>
                   ))}
@@ -1056,6 +1224,180 @@ export default function TeamsPage() {
             >
               Okay
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Participant Confirmation Modal */}
+      {deleteParticipantConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 md:p-8 text-center">
+            {/* Warning Icon */}
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="w-8 h-8 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            </div>
+
+            {/* Title */}
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+              Delete Participant?
+            </h2>
+
+            {/* Message */}
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-gray-900">
+                {deleteParticipantConfirm.participant.name}
+              </span>
+              ? This action cannot be undone.
+            </p>
+
+            {/* Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteParticipantConfirm(null)}
+                disabled={isDeletingParticipant}
+                className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteParticipant}
+                disabled={isDeletingParticipant}
+                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold flex items-center justify-center gap-2 disabled:bg-red-400 disabled:cursor-not-allowed"
+              >
+                {isDeletingParticipant ? (
+                  <>
+                    <svg
+                      className="w-4 h-4 animate-spin"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Deleting...
+                  </>
+                ) : (
+                  "Yes, Delete"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Team Confirmation Modal */}
+      {deleteTeamConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 md:p-8 text-center">
+            {/* Warning Icon */}
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="w-8 h-8 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            </div>
+
+            {/* Title */}
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+              Delete Team?
+            </h2>
+
+            {/* Message */}
+            <p className="text-gray-600 mb-2">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-gray-900">
+                {deleteTeamConfirm.name}
+              </span>
+              ?
+            </p>
+            {deleteTeamConfirm.members.length > 0 && (
+              <p className="text-red-600 text-sm mb-6">
+                ⚠️ This will also delete {deleteTeamConfirm.members.length}{" "}
+                participant{deleteTeamConfirm.members.length > 1 ? "s" : ""} in
+                this team!
+              </p>
+            )}
+            {deleteTeamConfirm.members.length === 0 && (
+              <p className="text-gray-500 text-sm mb-6">
+                This team has no members.
+              </p>
+            )}
+
+            {/* Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteTeamConfirm(null)}
+                disabled={isDeletingTeam}
+                className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteTeam}
+                disabled={isDeletingTeam}
+                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold flex items-center justify-center gap-2 disabled:bg-red-400 disabled:cursor-not-allowed"
+              >
+                {isDeletingTeam ? (
+                  <>
+                    <svg
+                      className="w-4 h-4 animate-spin"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Deleting...
+                  </>
+                ) : (
+                  "Yes, Delete Team"
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

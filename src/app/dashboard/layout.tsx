@@ -70,7 +70,8 @@ export default function DashboardLayout({
 
           {/* Message */}
           <p className="text-gray-600 mb-6">
-            Your session has been ended because your account was logged in from another device or browser.
+            Your session has been ended because your account was logged in from
+            another device or browser.
           </p>
 
           {/* Info Box */}
@@ -91,7 +92,10 @@ export default function DashboardLayout({
               </svg>
               <div className="text-sm text-orange-800">
                 <p className="font-semibold mb-1">Security Notice</p>
-                <p>Only one active session is allowed per account. If this wasn&apos;t you, please change your password immediately.</p>
+                <p>
+                  Only one active session is allowed per account. If this
+                  wasn&apos;t you, please change your password immediately.
+                </p>
               </div>
             </div>
           </div>
@@ -117,7 +121,7 @@ export default function DashboardLayout({
       <div className="flex min-h-screen bg-gray-50">
         <SideNav userRole={user.role} />
         <main className="flex-1 ml-0 md:ml-64 transition-all duration-300 overflow-x-hidden">
-          <div className="p-2 sm:p-4 md:p-6 lg:p-8 max-w-full">{children}</div>
+          <div className="pt-14 md:pt-0 p-2 sm:p-4 md:p-6 lg:p-8 max-w-full">{children}</div>
         </main>
       </div>
     </AttendanceProvider>

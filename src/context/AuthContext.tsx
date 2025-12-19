@@ -113,35 +113,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   // Validate session against database
-  const validateSession = useCallback(async (userId: number, sessionToken: string): Promise<boolean> => {
-    try {
-      const { data, error } = await supabase
-        .from("users")
-        .select("session_token, status")
-        .eq("id", userId)
-        .single();
+  const validateSession = useCallback(
+    async (userId: number, sessionToken: string): Promise<boolean> => {
+      try {
+        const { data, error } = await supabase
+          .from("users")
+          .select("session_token, status")
+          .eq("id", userId)
+          .single();
 
-      if (error || !data) {
+        if (error || !data) {
+          return false;
+        }
+
+        // Check if user is still active and session token matches
+        if (data.status !== "active" || data.session_token !== sessionToken) {
+          return false;
+        }
+
+        return true;
+      } catch {
         return false;
       }
-
-      // Check if user is still active and session token matches
-      if (data.status !== "active" || data.session_token !== sessionToken) {
-        return false;
-      }
-
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
+    },
+    []
+  );
 
   // Handle session invalidation (logout due to another login)
   const handleSessionInvalidated = useCallback(() => {
     setSessionInvalidated(true);
     setUser(null);
     localStorage.removeItem("funlish_user");
-    
+
     // Clear the interval
     if (sessionCheckRef.current) {
       clearInterval(sessionCheckRef.current);
@@ -150,20 +153,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Start session validation polling
-  const startSessionValidation = useCallback((userId: number, sessionToken: string) => {
-    // Clear any existing interval
-    if (sessionCheckRef.current) {
-      clearInterval(sessionCheckRef.current);
-    }
-
-    // Set up periodic session validation
-    sessionCheckRef.current = setInterval(async () => {
-      const isValid = await validateSession(userId, sessionToken);
-      if (!isValid) {
-        handleSessionInvalidated();
+  const startSessionValidation = useCallback(
+    (userId: number, sessionToken: string) => {
+      // Clear any existing interval
+      if (sessionCheckRef.current) {
+        clearInterval(sessionCheckRef.current);
       }
-    }, SESSION_CHECK_INTERVAL);
-  }, [validateSession, handleSessionInvalidated]);
+
+      // Set up periodic session validation
+      sessionCheckRef.current = setInterval(async () => {
+        const isValid = await validateSession(userId, sessionToken);
+        if (!isValid) {
+          handleSessionInvalidated();
+        }
+      }, SESSION_CHECK_INTERVAL);
+    },
+    [validateSession, handleSessionInvalidated]
+  );
 
   // Check for existing session on mount
   useEffect(() => {
@@ -172,10 +178,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (storedUser) {
         try {
           const parsedUser = JSON.parse(storedUser) as User;
-          
+
           // Validate the session token
           if (parsedUser.sessionToken) {
-            const isValid = await validateSession(parsedUser.id, parsedUser.sessionToken);
+            const isValid = await validateSession(
+              parsedUser.id,
+              parsedUser.sessionToken
+            );
             if (isValid) {
               setUser(parsedUser);
               startSessionValidation(parsedUser.id, parsedUser.sessionToken);
@@ -262,10 +271,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(loggedInUser);
       localStorage.setItem("funlish_user", JSON.stringify(loggedInUser));
-      
+
       // Start session validation
       startSessionValidation(data.id, newSessionToken);
-      
+
       return true;
     } catch (err) {
       console.error("Login error:", err);

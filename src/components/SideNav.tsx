@@ -298,7 +298,7 @@ export default function SideNav({ userRole = "committee" }: SideNavProps) {
         </svg>
       ),
     },
-    {
+    /*{
       name: "Report",
       href: "/dashboard/report",
       icon: (
@@ -316,7 +316,7 @@ export default function SideNav({ userRole = "committee" }: SideNavProps) {
           />
         </svg>
       ),
-    },
+    },*/
   ];
 
   const adminItems: NavItem[] = [
