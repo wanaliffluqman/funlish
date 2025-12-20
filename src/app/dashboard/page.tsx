@@ -92,7 +92,7 @@ export default function DashboardPage() {
       const activities: Activity[] = [];
 
       // Get recent participant registrations (with team info if assigned)
-      const { data: recentParticipants } = await supabase
+      const { data: recentParticipants } = (await supabase
         .from("participants")
         .select(
           `
@@ -104,13 +104,23 @@ export default function DashboardPage() {
         `
         )
         .order("created_at", { ascending: false })
-        .limit(5) as { data: { id: number; name: string; created_at: string; registered_by: number | null; groups: { name: string } | null }[] | null };
+        .limit(5)) as {
+        data:
+          | {
+              id: number;
+              name: string;
+              created_at: string;
+              registered_by: number | null;
+              groups: { name: string } | null;
+            }[]
+          | null;
+      };
 
       if (recentParticipants) {
         for (const p of recentParticipants) {
           const timestamp = new Date(p.created_at);
           const groupName = (p.groups as { name: string } | null)?.name;
-          
+
           // Fetch user who registered
           let registeredByName: string | undefined;
           if (p.registered_by) {
@@ -137,7 +147,7 @@ export default function DashboardPage() {
       }
 
       // Get recent attendance records
-      const { data: recentAttendance } = await supabase
+      const { data: recentAttendance } = (await supabase
         .from("attendance")
         .select(
           `
@@ -150,14 +160,24 @@ export default function DashboardPage() {
         )
         .eq("status", "attend")
         .order("created_at", { ascending: false })
-        .limit(5) as { data: { id: number; status: string; created_at: string; marked_by: number | null; committee_members: { name: string } | null }[] | null };
+        .limit(5)) as {
+        data:
+          | {
+              id: number;
+              status: string;
+              created_at: string;
+              marked_by: number | null;
+              committee_members: { name: string } | null;
+            }[]
+          | null;
+      };
 
       if (recentAttendance) {
         for (const a of recentAttendance) {
           const timestamp = new Date(a.created_at);
           const memberName =
             (a.committee_members as { name: string } | null)?.name || "Unknown";
-          
+
           // Fetch user who marked attendance
           let markedByName: string | undefined;
           if (a.marked_by) {

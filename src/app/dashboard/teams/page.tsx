@@ -158,6 +158,12 @@ export default function TeamsPage() {
     setIsDeletingParticipant(true);
 
     try {
+      // Check if this is the last member in the team
+      const currentTeam = teams.find(
+        (t) => t.id === deleteParticipantConfirm.teamId
+      );
+      const willTeamBeEmpty = currentTeam?.members.length === 1;
+
       const { error } = await supabase
         .from("participants")
         .delete()
@@ -165,9 +171,21 @@ export default function TeamsPage() {
 
       if (error) throw error;
 
+      // If team will be empty, auto-delete it from database
+      if (willTeamBeEmpty) {
+        const { error: deleteGroupError } = await supabase
+          .from("groups")
+          .delete()
+          .eq("id", deleteParticipantConfirm.teamId);
+
+        if (deleteGroupError) {
+          console.error("Error auto-deleting empty team:", deleteGroupError);
+        }
+      }
+
       // Update local state
-      setTeams((prevTeams) =>
-        prevTeams.map((team) =>
+      setTeams((prevTeams) => {
+        let updatedTeams = prevTeams.map((team) =>
           team.id === deleteParticipantConfirm.teamId
             ? {
                 ...team,
@@ -176,8 +194,17 @@ export default function TeamsPage() {
                 ),
               }
             : team
-        )
-      );
+        );
+
+        // Auto-delete empty team from local state
+        if (willTeamBeEmpty) {
+          updatedTeams = updatedTeams.filter(
+            (team) => team.id !== deleteParticipantConfirm.teamId
+          );
+        }
+
+        return updatedTeams;
+      });
 
       setTotalParticipants((prev) => prev - 1);
     } catch (err) {
@@ -245,9 +272,25 @@ export default function TeamsPage() {
 
       if (error) throw error;
 
+      // Check if source team will be empty after move
+      const sourceTeamMembersCount = fromTeam?.members.length || 0;
+      const willSourceTeamBeEmpty = sourceTeamMembersCount === 1;
+
+      // If source team will be empty, delete it from database
+      if (willSourceTeamBeEmpty && fromTeam) {
+        const { error: deleteGroupError } = await supabase
+          .from("groups")
+          .delete()
+          .eq("id", selectedParticipant.fromTeamId);
+
+        if (deleteGroupError) {
+          console.error("Error auto-deleting empty team:", deleteGroupError);
+        }
+      }
+
       // Update local state
-      setTeams((prevTeams) =>
-        prevTeams.map((team) => {
+      setTeams((prevTeams) => {
+        let updatedTeams = prevTeams.map((team) => {
           // Remove from source team
           if (team.id === selectedParticipant.fromTeamId) {
             return {
@@ -265,8 +308,17 @@ export default function TeamsPage() {
             };
           }
           return team;
-        })
-      );
+        });
+
+        // Auto-delete empty team from local state
+        if (willSourceTeamBeEmpty) {
+          updatedTeams = updatedTeams.filter(
+            (team) => team.id !== selectedParticipant.fromTeamId
+          );
+        }
+
+        return updatedTeams;
+      });
 
       // Show move result modal
       setMoveResult({
