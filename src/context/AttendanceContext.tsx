@@ -64,16 +64,16 @@ export interface MemberAttendance {
 // Department display names
 export const DEPARTMENT_DISPLAY_NAMES: Record<Department, string> = {
   administrator: "Administrator",
-  pr_communication: "PR & Communication",
-  protocol_ceremonial: "Protocol & Ceremonial",
-  fnb: "F&B",
-  sponsorship_finance: "Sponsorship & Finance",
-  logistics_operations: "Logistics & Operations",
-  technical_it_support: "Technical & IT Support",
   evaluation_research_documentation: "Evaluation, Research & Documentation",
-  health_safety_welfare: "Health, Safety & Welfare",
   executive: "Executive",
+  fnb: "F&B",
+  health_safety_welfare: "Health, Safety & Welfare",
+  logistics_operations: "Logistics & Operations",
+  pr_communication: "PR & Communication",
   program_activities: "Program & Activities",
+  protocol_ceremonial: "Protocol & Ceremonial",
+  sponsorship_finance: "Sponsorship & Finance",
+  technical_it_support: "Technical & IT Support",
 };
 
 interface AttendanceContextType {
