@@ -104,7 +104,7 @@ export default function DashboardPage() {
         `
         )
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(5) as { data: { id: number; name: string; created_at: string; registered_by: number | null; groups: { name: string } | null }[] | null };
 
       if (recentParticipants) {
         for (const p of recentParticipants) {
@@ -150,7 +150,7 @@ export default function DashboardPage() {
         )
         .eq("status", "attend")
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(5) as { data: { id: number; status: string; created_at: string; marked_by: number | null; committee_members: { name: string } | null }[] | null };
 
       if (recentAttendance) {
         for (const a of recentAttendance) {
