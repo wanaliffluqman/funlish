@@ -155,21 +155,23 @@ export default function LoginPage() {
             </div>
 
             {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                />
-                <span className="text-gray-600">Remember me</span>
-              </label>
-              <button
-                type="button"
-                className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
-              >
-                Forgot password?
-              </button>
-            </div>
+            {/*
+              <div className="flex items-center justify-between text-sm">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  />
+                  <span className="text-gray-600">Remember me</span>
+                </label>
+                <button
+                  type="button"
+                  className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            */}
 
             {/* Error Message */}
             {error && (
