@@ -34,7 +34,7 @@ interface Team {
 }
 
 const MAX_MEMBERS_PER_TEAM = 5;
-const DEFAULT_TEAMS = 8;
+const DEFAULT_TEAMS = 6;
 
 export default function TeamsPage() {
   const { user, canEdit } = useAuth();
