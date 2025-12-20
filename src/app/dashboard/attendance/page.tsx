@@ -12,7 +12,9 @@ import type { Department } from "@/types/database.types";
 
 // Helper function to get current date in Malaysia timezone (UTC+8)
 function getMalaysiaDateString(): string {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' });
+  return new Date().toLocaleDateString("en-CA", {
+    timeZone: "Asia/Kuala_Lumpur",
+  });
 }
 
 // Use MemberAttendance from context
@@ -789,7 +791,10 @@ export default function AttendancePage() {
                 {viewMode && selectedMember.check_in_time && (
                   <p className="text-xs md:text-sm text-gray-500 mt-1">
                     Attended:{" "}
-                    {new Date(selectedMember.check_in_time).toLocaleString("en-MY", { timeZone: "Asia/Kuala_Lumpur" })}
+                    {new Date(selectedMember.check_in_time).toLocaleString(
+                      "en-MY",
+                      { timeZone: "Asia/Kuala_Lumpur" }
+                    )}
                   </p>
                 )}
                 {/* Show current location when marking attendance */}

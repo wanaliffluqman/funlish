@@ -103,7 +103,9 @@ const AttendanceContext = createContext<AttendanceContextType | undefined>(
 
 // Helper function to get current date in Malaysia timezone (UTC+8)
 function getMalaysiaDateString(): string {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' });
+  return new Date().toLocaleDateString("en-CA", {
+    timeZone: "Asia/Kuala_Lumpur",
+  });
 }
 
 export function AttendanceProvider({ children }: { children: ReactNode }) {

@@ -359,14 +359,18 @@ export default function TeamsPage() {
       }
 
       // Insert participant into Supabase
+      console.log("Registering participant with user ID:", user?.id);
       const { data: participantData, error: participantError } = await supabase
         .from("participants")
         .insert({
           name: name,
           group_id: assignedTeamId,
+          registered_by: user?.id || null,
         })
         .select()
         .single();
+
+      console.log("Participant registered:", participantData);
 
       if (participantError) throw participantError;
 

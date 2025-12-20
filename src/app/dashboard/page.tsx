@@ -99,7 +99,9 @@ export default function DashboardPage() {
           id, 
           name, 
           created_at,
-          groups (name)
+          registered_by,
+          groups (name),
+          users:registered_by (name)
         `
         )
         .order("created_at", { ascending: false })
@@ -109,6 +111,7 @@ export default function DashboardPage() {
         recentParticipants.forEach((p) => {
           const timestamp = new Date(p.created_at);
           const groupName = (p.groups as { name: string } | null)?.name;
+          const registeredByUser = (p.users as { name: string } | null)?.name;
           const message = groupName
             ? `New participant registered: ${p.name} (${groupName})`
             : `New participant registered: ${p.name}`;
@@ -118,6 +121,7 @@ export default function DashboardPage() {
             message,
             time: getRelativeTime(timestamp),
             timestamp,
+            markedBy: registeredByUser || undefined,
           });
         });
       }
@@ -127,11 +131,13 @@ export default function DashboardPage() {
         .from("attendance")
         .select(
           `
-          id,
-          status,
-          created_at,
-          committee_members (name)
-        `
+            id,
+            status,
+            created_at,
+            marked_by,
+            committee_members (name),
+            users:marked_by (name)
+          `
         )
         .eq("status", "attend")
         .order("created_at", { ascending: false })
@@ -142,12 +148,14 @@ export default function DashboardPage() {
           const timestamp = new Date(a.created_at);
           const memberName =
             (a.committee_members as { name: string } | null)?.name || "Unknown";
+          const markedByUser = (a.users as { name: string } | null)?.name;
           activities.push({
             id: `att-${a.id}`,
             type: "attendance",
             message: `${memberName} marked as present`,
             time: getRelativeTime(timestamp),
             timestamp,
+            markedBy: markedByUser || undefined,
           });
         });
       }
@@ -193,6 +201,7 @@ export default function DashboardPage() {
             name: string;
             group_id: number | null;
             created_at: string;
+            registered_by: number | null;
           };
           const timestamp = new Date(newParticipant.created_at);
 
@@ -207,6 +216,17 @@ export default function DashboardPage() {
             groupName = group?.name;
           }
 
+          // Fetch the user who registered the participant
+          let registeredByName: string | undefined;
+          if (newParticipant.registered_by) {
+            const { data: registeredByUser } = await supabase
+              .from("users")
+              .select("name")
+              .eq("id", newParticipant.registered_by)
+              .single();
+            registeredByName = registeredByUser?.name;
+          }
+
           const message = groupName
             ? `New participant registered: ${newParticipant.name} (${groupName})`
             : `New participant registered: ${newParticipant.name}`;
@@ -218,6 +238,7 @@ export default function DashboardPage() {
               message,
               time: getRelativeTime(timestamp),
               timestamp,
+              markedBy: registeredByName,
             },
             ...prev.slice(0, 7),
           ]);
@@ -240,6 +261,7 @@ export default function DashboardPage() {
             committee_member_id: number;
             status: string;
             created_at: string;
+            marked_by: number | null;
           };
           if (newAttendance.status === "attend") {
             // Fetch the committee member name
@@ -249,6 +271,17 @@ export default function DashboardPage() {
               .eq("id", newAttendance.committee_member_id)
               .single();
 
+            // Fetch the user who marked the attendance
+            let markedByName: string | undefined;
+            if (newAttendance.marked_by) {
+              const { data: markedByUser } = await supabase
+                .from("users")
+                .select("name")
+                .eq("id", newAttendance.marked_by)
+                .single();
+              markedByName = markedByUser?.name;
+            }
+
             const timestamp = new Date(newAttendance.created_at);
             setRecentActivities((prev) => [
               {
@@ -257,6 +290,7 @@ export default function DashboardPage() {
                 message: `${member?.name || "Someone"} marked as present`,
                 time: getRelativeTime(timestamp),
                 timestamp,
+                markedBy: markedByName,
               },
               ...prev.slice(0, 7),
             ]);
