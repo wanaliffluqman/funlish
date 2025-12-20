@@ -10,6 +10,11 @@ import {
 } from "@/context/AttendanceContext";
 import type { Department } from "@/types/database.types";
 
+// Helper function to get current date in Malaysia timezone (UTC+8)
+function getMalaysiaDateString(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' });
+}
+
 // Use MemberAttendance from context
 type CommitteeMember = MemberAttendance;
 
@@ -458,7 +463,7 @@ export default function AttendancePage() {
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              max={new Date().toISOString().split("T")[0]}
+              max={getMalaysiaDateString()}
               className="border-none focus:outline-none focus:ring-0 text-sm font-medium text-gray-900 bg-transparent cursor-pointer"
             />
           </div>
@@ -474,7 +479,7 @@ export default function AttendancePage() {
               day: "numeric",
             })}
           </span>
-          {selectedDate === new Date().toISOString().split("T")[0] && (
+          {selectedDate === getMalaysiaDateString() && (
             <span className="px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium">
               Today
             </span>
@@ -781,7 +786,7 @@ export default function AttendancePage() {
                 {viewMode && selectedMember.check_in_time && (
                   <p className="text-xs md:text-sm text-gray-500 mt-1">
                     Attended:{" "}
-                    {new Date(selectedMember.check_in_time).toLocaleString()}
+                    {new Date(selectedMember.check_in_time).toLocaleString("en-MY", { timeZone: "Asia/Kuala_Lumpur" })}
                   </p>
                 )}
                 {/* Show current location when marking attendance */}

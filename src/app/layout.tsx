@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import NavigationProgress from "@/components/NavigationProgress";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/context/AuthContext";
+import MaintenanceGuard from "@/components/MaintenanceGuard";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,7 +37,7 @@ export default function RootLayout({
           <Suspense fallback={null}>
             <NavigationProgress />
           </Suspense>
-          {children}
+          <MaintenanceGuard>{children}</MaintenanceGuard>
           <Footer />
         </AuthProvider>
       </body>

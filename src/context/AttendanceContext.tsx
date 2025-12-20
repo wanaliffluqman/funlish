@@ -99,23 +99,30 @@ const AttendanceContext = createContext<AttendanceContextType | undefined>(
   undefined
 );
 
+// Helper function to get current date in Malaysia timezone (UTC+8)
+function getMalaysiaDateString(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' });
+}
+
 export function AttendanceProvider({ children }: { children: ReactNode }) {
   const [members, setMembers] = useState<MemberAttendance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Track selected date (default to today)
+  // Track selected date (default to today in Malaysia timezone)
   const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
+    getMalaysiaDateString()
   );
 
   // Fetch all committee members and their attendance for selected date
-  const fetchMembers = async (date?: string) => {
+  const fetchMembers = async (date?: string, showLoading = true) => {
     const targetDate = date || selectedDate;
 
     try {
-      setIsLoading(true);
-      setError(null);
+      if (showLoading) {
+        setIsLoading(true);
+        setError(null);
+      }
 
       // Get all committee members
       const { data: committeeMembers, error: membersError } = await supabase
@@ -162,16 +169,26 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
 
       setMembers(combined);
     } catch (err) {
-      console.error("Error fetching members:", err);
-      setError("Failed to load members");
+      // Only log and show errors on initial load, not on background refresh
+      if (showLoading) {
+        console.error("Error fetching members:", err);
+        setError("Failed to load members");
+      }
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
   };
 
-  // Load members when date changes
+  // Load members when date changes and auto-refresh every 2 seconds
   useEffect(() => {
-    fetchMembers(selectedDate);
+    fetchMembers(selectedDate, true);
+
+    // Auto-refresh every 2 seconds for real-time updates
+    const refreshInterval = setInterval(() => {
+      fetchMembers(selectedDate, false);
+    }, 2000);
+
+    return () => clearInterval(refreshInterval);
   }, [selectedDate]);
 
   // Mark attendance for a member (INSERT or UPDATE)

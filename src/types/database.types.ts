@@ -191,6 +191,41 @@ export interface Database {
           }
         ];
       };
+      // Site settings table - stores maintenance mode and other settings
+      site_settings: {
+        Row: {
+          id: number;
+          setting_key: string;
+          setting_value: string;
+          updated_by: number | null;
+          updated_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: number;
+          setting_key: string;
+          setting_value: string;
+          updated_by?: number | null;
+          updated_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: number;
+          setting_key?: string;
+          setting_value?: string;
+          updated_by?: number | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "site_settings_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -214,6 +249,7 @@ export type Participant = Database["public"]["Tables"]["participants"]["Row"];
 export type CommitteeMember =
   Database["public"]["Tables"]["committee_members"]["Row"];
 export type Attendance = Database["public"]["Tables"]["attendance"]["Row"];
+export type SiteSetting = Database["public"]["Tables"]["site_settings"]["Row"];
 
 export type InsertUser = Database["public"]["Tables"]["users"]["Insert"];
 export type InsertGroup = Database["public"]["Tables"]["groups"]["Insert"];
@@ -221,3 +257,5 @@ export type InsertParticipant =
   Database["public"]["Tables"]["participants"]["Insert"];
 export type InsertAttendance =
   Database["public"]["Tables"]["attendance"]["Insert"];
+export type InsertSiteSetting =
+  Database["public"]["Tables"]["site_settings"]["Insert"];

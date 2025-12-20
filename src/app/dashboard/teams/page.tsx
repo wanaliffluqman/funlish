@@ -75,9 +75,9 @@ export default function TeamsPage() {
   const [isDeletingTeam, setIsDeletingTeam] = useState(false);
 
   // Fetch teams and participants from Supabase
-  const fetchTeamsAndParticipants = useCallback(async () => {
+  const fetchTeamsAndParticipants = useCallback(async (showLoading = true) => {
     try {
-      setError(null);
+      if (showLoading) setError(null);
 
       // Fetch all groups
       const { data: groupsData, error: groupsError } = await supabase
@@ -119,17 +119,28 @@ export default function TeamsPage() {
 
       setTeams(teamsMap);
       setTotalParticipants(participantsData?.length || 0);
+      if (showLoading) setError(null);
     } catch (err) {
-      console.error("Error fetching data:", err);
-      setError("Failed to load teams and participants");
+      // Only log and show errors on initial load, not on background refresh
+      if (showLoading) {
+        console.error("Error fetching data:", err);
+        setError("Failed to load teams and participants");
+      }
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
   }, []);
 
-  // Initialize data on mount
+  // Initialize data on mount and auto-refresh every 2 seconds
   useEffect(() => {
-    fetchTeamsAndParticipants();
+    fetchTeamsAndParticipants(true);
+
+    // Auto-refresh every 2 seconds for real-time updates
+    const refreshInterval = setInterval(() => {
+      fetchTeamsAndParticipants(false);
+    }, 2000);
+
+    return () => clearInterval(refreshInterval);
   }, [fetchTeamsAndParticipants]);
 
   const handleMoveParticipant = (
