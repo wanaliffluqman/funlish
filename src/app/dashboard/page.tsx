@@ -100,18 +100,28 @@ export default function DashboardPage() {
           name, 
           created_at,
           registered_by,
-          groups (name),
-          users:registered_by (name)
+          groups (name)
         `
         )
         .order("created_at", { ascending: false })
         .limit(5);
 
       if (recentParticipants) {
-        recentParticipants.forEach((p) => {
+        for (const p of recentParticipants) {
           const timestamp = new Date(p.created_at);
           const groupName = (p.groups as { name: string } | null)?.name;
-          const registeredByUser = (p.users as { name: string } | null)?.name;
+          
+          // Fetch user who registered
+          let registeredByName: string | undefined;
+          if (p.registered_by) {
+            const { data: regUser } = await supabase
+              .from("users")
+              .select("name")
+              .eq("id", p.registered_by)
+              .single();
+            registeredByName = regUser?.name;
+          }
+
           const message = groupName
             ? `New participant registered: ${p.name} (${groupName})`
             : `New participant registered: ${p.name}`;
@@ -121,9 +131,9 @@ export default function DashboardPage() {
             message,
             time: getRelativeTime(timestamp),
             timestamp,
-            markedBy: registeredByUser || undefined,
+            markedBy: registeredByName,
           });
-        });
+        }
       }
 
       // Get recent attendance records
@@ -135,8 +145,7 @@ export default function DashboardPage() {
             status,
             created_at,
             marked_by,
-            committee_members (name),
-            users:marked_by (name)
+            committee_members (name)
           `
         )
         .eq("status", "attend")
@@ -144,20 +153,31 @@ export default function DashboardPage() {
         .limit(5);
 
       if (recentAttendance) {
-        recentAttendance.forEach((a) => {
+        for (const a of recentAttendance) {
           const timestamp = new Date(a.created_at);
           const memberName =
             (a.committee_members as { name: string } | null)?.name || "Unknown";
-          const markedByUser = (a.users as { name: string } | null)?.name;
+          
+          // Fetch user who marked attendance
+          let markedByName: string | undefined;
+          if (a.marked_by) {
+            const { data: markedUser } = await supabase
+              .from("users")
+              .select("name")
+              .eq("id", a.marked_by)
+              .single();
+            markedByName = markedUser?.name;
+          }
+
           activities.push({
             id: `att-${a.id}`,
             type: "attendance",
             message: `${memberName} marked as present`,
             time: getRelativeTime(timestamp),
             timestamp,
-            markedBy: markedByUser || undefined,
+            markedBy: markedByName,
           });
-        });
+        }
       }
 
       // Sort all activities by timestamp and take the most recent 8
