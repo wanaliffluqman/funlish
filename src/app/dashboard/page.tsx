@@ -11,6 +11,7 @@ interface Activity {
   message: string;
   time: string;
   timestamp: Date;
+  markedBy?: string;
 }
 
 interface Stats {
@@ -535,7 +536,15 @@ export default function DashboardPage() {
                       <p className="text-gray-900 font-medium">
                         {activity.message}
                       </p>
-                      <p className="text-sm text-gray-500">{activity.time}</p>
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <span>{activity.time}</span>
+                        {activity.markedBy && (
+                          <>
+                            <span>•</span>
+                            <span>by {activity.markedBy}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}

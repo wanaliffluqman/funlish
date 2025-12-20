@@ -39,6 +39,7 @@ export interface AttendanceRecord {
   accuracy: number | null;
   address: string | null;
   check_in_time: string | null;
+  marked_by?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -83,7 +84,8 @@ interface AttendanceContextType {
     memberId: number,
     status: "attend" | "absent",
     photoUrl?: string,
-    location?: LocationData
+    location?: LocationData,
+    userId?: number
   ) => Promise<void>;
   refreshMembers: () => Promise<void>;
   isLoading: boolean;
@@ -196,7 +198,8 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     memberId: number,
     status: "attend" | "absent",
     photoUrl?: string,
-    location?: LocationData
+    location?: LocationData,
+    userId?: number
   ) => {
     try {
       // Find the member
@@ -224,6 +227,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         accuracy: location?.accuracy || null,
         address: location?.address || null,
         check_in_time: status === "attend" ? new Date().toISOString() : null,
+        marked_by: userId || null,
       };
 
       if (member.attendance_id) {

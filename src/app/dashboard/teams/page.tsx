@@ -37,7 +37,7 @@ const MAX_MEMBERS_PER_TEAM = 5;
 const DEFAULT_TEAMS = 8;
 
 export default function TeamsPage() {
-  const { canEdit } = useAuth();
+  const { user, canEdit } = useAuth();
   const canEditTeams = canEdit("teams");
 
   const [teams, setTeams] = useState<Team[]>([]);

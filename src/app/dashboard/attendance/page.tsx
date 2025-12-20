@@ -19,7 +19,7 @@ function getMalaysiaDateString(): string {
 type CommitteeMember = MemberAttendance;
 
 export default function AttendancePage() {
-  const { canEdit } = useAuth();
+  const { user, canEdit } = useAuth();
   const canEditAttendance = canEdit("attendance");
 
   // Use shared attendance context
@@ -153,7 +153,7 @@ export default function AttendancePage() {
   const confirmAttendance = async () => {
     if (selectedMember) {
       try {
-        // Mark attendance with location data
+        // Mark attendance with location data and user who marked it
         await markAttendance(
           selectedMember.member_id,
           "attend",
@@ -165,13 +165,16 @@ export default function AttendancePage() {
                 accuracy: currentLocation.accuracy,
                 address: currentLocation.address,
               }
-            : undefined
+            : undefined,
+          user?.id
         );
         console.log(
           "Attendance confirmed for:",
           selectedMember.name,
           "at location:",
-          currentLocation
+          currentLocation,
+          "by user:",
+          user?.name
         );
       } catch (err) {
         console.error("Error confirming attendance:", err);
